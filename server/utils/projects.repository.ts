@@ -88,7 +88,10 @@ export function deleteProject(id: number): void {
 }
 
 export function countProjects(): number {
-  return Number(getDb().prepare('SELECT COUNT(*) AS count FROM projects').get()!.count);
+  const row = getDb().prepare('SELECT COUNT(*) AS count FROM projects').get() as
+    | { count: number }
+    | undefined;
+  return row ? Number(row.count) : 0;
 }
 
 export function seedProjects(payloads: ProjectPayload[]): number {

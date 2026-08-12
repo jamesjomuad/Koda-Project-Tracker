@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Project } from '../#shared/types/project';
+import type { Project } from '#shared/types/project';
 
 useSeoMeta({ title: 'Edit Project · Koda Project Tracker' });
 

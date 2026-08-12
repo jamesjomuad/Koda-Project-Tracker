@@ -1,5 +1,6 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { setup, $fetch } from '@nuxt/test-utils/e2e';
+// @vitest-environment node
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { setup } from '@nuxt/test-utils/e2e';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -7,7 +8,7 @@ import path from 'node:path';
 const tempDir = mkdtempSync(path.join(tmpdir(), 'koda-test-'));
 process.env.DB_PATH = path.join(tempDir, 'test.db');
 
-await setup({ server: true, port: 3199, host: '127.0.0.1' });
+await setup({ server: true, port: 3199, build: true });
 
 const base = 'http://127.0.0.1:3199/api/projects';
 
@@ -30,7 +31,7 @@ async function fetchExpectStatus(pathOrUrl: string, status: number, init?: Reque
 
 describe('GET /api/projects', () => {
   it('returns all seeded projects', async () => {
-    const projects = await $fetch(`${base}`);
+    const projects = await fetch(`${base}`).then(r => r.json());
     expect(Array.isArray(projects)).toBe(true);
     expect(projects.length).toBeGreaterThan(0);
     expect(projects[0]).toHaveProperty('id');
@@ -43,31 +44,31 @@ describe('GET /api/projects', () => {
   });
 
   it('filters by status', async () => {
-    const projects = await $fetch(`${base}?status=Completed`);
+    const projects = await fetch(`${base}?status=Completed`).then(r => r.json());
     expect(projects.every((p: any) => p.status === 'Completed')).toBe(true);
   });
 
   it('filters by priority', async () => {
-    const projects = await $fetch(`${base}?priority=High`);
+    const projects = await fetch(`${base}?priority=High`).then(r => r.json());
     expect(projects.every((p: any) => p.priority === 'High')).toBe(true);
   });
 
   it('searches across client and project names', async () => {
-    const byClient = await $fetch(`${base}?search=Acme`);
+    const byClient = await fetch(`${base}?search=Acme`).then(r => r.json());
     expect(byClient.some((p: any) => p.clientName.includes('Acme'))).toBe(true);
 
-    const byProject = await $fetch(`${base}?search=Ordering`);
+    const byProject = await fetch(`${base}?search=Ordering`).then(r => r.json());
     expect(byProject.some((p: any) => p.projectName.includes('Ordering'))).toBe(true);
   });
 
   it('sorts by dueDate ascending by default', async () => {
-    const projects = await $fetch(`${base}`);
+    const projects = await fetch(`${base}`).then(r => r.json());
     const dates = projects.map((p: any) => p.dueDate);
     expect([...dates].sort()).toEqual(dates);
   });
 
   it('sorts descending with order=desc', async () => {
-    const projects = await $fetch(`${base}?sortBy=dueDate&order=desc`);
+    const projects = await fetch(`${base}?sortBy=dueDate&order=desc`).then(r => r.json());
     const dates = projects.map((p: any) => p.dueDate);
     expect([...dates].sort().reverse()).toEqual(dates);
   });
@@ -83,7 +84,7 @@ describe('GET /api/projects', () => {
 
 describe('GET /api/projects/:id', () => {
   it('returns a single project', async () => {
-    const project = await $fetch(`${base}/1`);
+    const project = await fetch(`${base}/1`).then(r => r.json());
     expect(project.id).toBe(1);
   });
 
@@ -108,7 +109,7 @@ describe('POST /api/projects', () => {
     expect(created).toMatchObject(validPayload);
     expect(created.id).toBeGreaterThan(0);
 
-    const fetched = await $fetch(`${base}/${created.id}`);
+    const fetched = await fetch(`${base}/${created.id}`).then(r => r.json());
     expect(fetched.projectName).toBe('Test Project');
   });
 
@@ -143,7 +144,7 @@ describe('PUT /api/projects/:id', () => {
   let createdId: number;
 
   beforeEach(async () => {
-    const created = await $fetch(base, { method: 'POST', body: validPayload });
+    const created = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(validPayload) }).then(r => r.json());
     createdId = created.id;
   });
 
@@ -179,7 +180,7 @@ describe('PUT /api/projects/:id', () => {
 
 describe('DELETE /api/projects/:id', () => {
   it('deletes a project', async () => {
-    const created = await $fetch(base, { method: 'POST', body: validPayload });
+    const created = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(validPayload) }).then(r => r.json());
     const res = await fetch(`${base}/${created.id}`, { method: 'DELETE' });
     expect(res.status).toBe(204);
 
@@ -194,5 +195,9 @@ describe('DELETE /api/projects/:id', () => {
 });
 
 afterAll(() => {
-  rmSync(tempDir, { recursive: true, force: true });
+  try {
+    rmSync(tempDir, { recursive: true, force: true });
+  } catch {
+    // The test server may still hold the DB file open; best-effort cleanup.
+  }
 });

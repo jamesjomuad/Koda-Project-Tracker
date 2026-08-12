@@ -7,10 +7,10 @@ import type { ValidationIssue } from '#shared/types/project';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-/** True when the string is a real calendar date in YYYY-MM-DD form. */
+/** True when the value is a real calendar date in YYYY-MM-DD form. */
 export function isValidDate(value: string): boolean {
   if (!DATE_RE.test(value)) return false;
-  const [year, month, day] = value.split('-').map(Number);
+  const [year = NaN, month = NaN, day = NaN] = value.split('-').map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return (
     date.getUTCFullYear() === year &&

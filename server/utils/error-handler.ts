@@ -42,5 +42,5 @@ export default function handleError(error: H3Error, event: H3Event): void {
   }
 
   setResponseStatus(event, statusCode);
-  return send(event, JSON.stringify(body));
+  void send(event, JSON.stringify(body));
 }
