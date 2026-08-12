@@ -1,3 +1,12 @@
+<script setup lang="ts">
+const { user, logout } = useAuth();
+
+async function onLogout(): Promise<void> {
+  await logout();
+  await navigateTo('/login');
+}
+</script>
+
 <template>
   <div class="layout">
     <header class="header">
@@ -9,6 +18,12 @@
         <nav class="nav">
           <NuxtLink to="/" class="nav-link">Projects</NuxtLink>
           <NuxtLink to="/projects/new" class="btn btn-primary">+ New Project</NuxtLink>
+          <span v-if="user" class="nav-user" :title="`Signed in as ${user.username}`">
+            {{ user.username }}
+          </span>
+          <button v-if="user" type="button" class="btn btn-secondary btn-sm" @click="onLogout">
+            Log out
+          </button>
         </nav>
       </div>
     </header>
@@ -75,6 +90,16 @@
 
 .nav-link.router-link-exact-active {
   color: var(--color-primary);
+}
+
+.nav-user {
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .page-body {

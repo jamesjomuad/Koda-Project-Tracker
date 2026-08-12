@@ -10,6 +10,7 @@ Built as a Full Stack Developer technical assessment (see `docs/REQUIREMENTS.md`
 - **Rich list** — search by client/project name, filter by status and priority, sort by any field (ascending/descending)
 - **Validation** — required fields, valid status/priority enums, real calendar dates, `dueDate` cannot be before `startDate`, with field-level error messages
 - **Seed data** — the database is auto-seeded with 12 sample projects on first run
+- **Authentication** — demo username/password login (session cookie), protected routes, logout
 - **Meaningful errors** — a consistent JSON error envelope (`code`, `message`, `issues`) for all API errors
 - **Responsive UI** — project cards with status/priority badges, overdue highlighting, confirm-before-delete dialog, loading/empty/error states
 
@@ -34,6 +35,17 @@ npm run dev      # start the dev server at http://localhost:3000
 
 The SQLite database is created automatically at `data/projects.db` and seeded with sample projects on first boot. Set `DB_PATH` to use a different database file/location.
 
+### Demo login
+
+Sign in at the login screen:
+
+| Field    | Value       |
+| -------- | ----------- |
+| Username | `admin`     |
+| Password | `admin123`  |
+
+Credentials and the cookie-signing secret can be overridden for deployments via `AUTH_USERNAME`, `AUTH_PASSWORD`, and `AUTH_SECRET` environment variables. Sessions are signed 12-hour httpOnly cookies.
+
 ### Other scripts
 
 ```bash
@@ -49,19 +61,31 @@ npm run typecheck   # TypeScript + Vue type checking
 app/                        # Nuxt app (frontend)
   assets/css/main.css       #   global styles / design tokens
   components/               #   ProjectForm, badges, ConfirmDialog, ...
-  composables/useProjects.ts#   client-side API access + error extraction
-  layouts/default.vue       #   app shell (header, nav, footer)
-  pages/                    #   /, /projects/new, /projects/:id/edit
+  composables/              #   useProjects, useAuth (client API access)
+  layouts/default.vue       #   app shell (header, nav, footer, logout)
+  middleware/auth.global.ts #   route guard (redirects to /login)
+  pages/                    #   /, /login, /projects/new, /projects/:id/edit
 server/                     # Nitro server (backend)
   api/projects/             #   REST routes: index.get/post, [id].get/put/delete
+  api/auth/                 #   login.post, logout.post, session.get
   plugins/db.ts             #   opens DB + seeds on startup
-  utils/                    #   db, repository, validation, errors, params, error-handler
+  utils/                    #   db, repository, validation, errors, params, auth, error-handler
 shared/                     # types + seed data shared by server and client (#shared alias)
 tests/                      # Vitest unit + e2e tests
 docs/                       # original assessment documents
 ```
 
 ## REST API
+
+### Authentication
+
+| Method | Path                | Description                       | Success |
+| ------ | ------------------- | --------------------------------- | ------- |
+| POST   | `/api/auth/login`   | Sign in with username/password    | 200     |
+| POST   | `/api/auth/logout`  | Clear the session cookie          | 200     |
+| GET    | `/api/auth/session` | Get the current user (or `null`)  | 200     |
+
+### Projects
 
 Base path: `/api/projects`
 
@@ -112,6 +136,7 @@ All errors follow one shape, making client handling predictable:
 - **SQLite + better-sqlite3** — a single-file database keeps setup trivial (no external service). `better-sqlite3` was chosen over Node's experimental `node:sqlite` to avoid `ExperimentalWarning` noise. A thin repository layer (`server/utils/projects.repository.ts`) keeps SQL out of the route handlers.
 - **zod validation** — one schema (`server/utils/validation.ts`) validates create/update payloads and query strings, producing field-level issues that are surfaced both in the API and in the UI form.
 - **Consistent error handling** — a global Nitro error handler returns the JSON envelope for `/api/*` routes while delegating page errors to Nuxt's default handler (so `app/error.vue` renders normally).
+- **Stateless session auth** — the login endpoint signs a username + expiry into an HMAC token (`node:crypto`) stored in an httpOnly, SameSite cookie. No session table is needed, and `getSessionUser()` just verifies the signature on each request. The Nuxt app's global middleware redirects unauthenticated users to `/login`. Credentials and the signing secret come from environment variables with assessment-friendly demo defaults.
 - **TypeScript everywhere** — shared types, `strict` settings, and `nuxt typecheck` (vue-tsc) as a CI-friendly guard.
 - **Two-tier testing** — pure unit tests for the validation logic plus end-to-end API tests that boot a real Nitro server against a temp SQLite DB (see `vitest.config.ts` / `vitest.e2e.config.ts`).
 

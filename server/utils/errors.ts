@@ -33,6 +33,10 @@ export function notFound(resource = 'Project'): H3Error {
   return apiError(404, 'NOT_FOUND', `${resource} not found`);
 }
 
+export function unauthorized(message = 'Not authorized'): H3Error {
+  return apiError(401, 'UNAUTHORIZED', message);
+}
+
 export function conflict(message: string): H3Error {
   return apiError(409, 'CONFLICT', message);
 }

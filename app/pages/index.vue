@@ -120,20 +120,53 @@ onMounted(load);
 
     <div class="stats" aria-label="Project summary">
       <div class="stat">
-        <span class="stat-value">{{ stats.total }}</span>
-        <span class="stat-label">Projects</span>
+        <span class="stat-icon stat-icon-total" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="7" width="18" height="14" rx="2" ry="2" />
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+        </span>
+        <span class="stat-text">
+          <span class="stat-value">{{ stats.total }}</span>
+          <span class="stat-label">Projects</span>
+        </span>
       </div>
       <div class="stat">
-        <span class="stat-value">{{ stats.inProgress }}</span>
-        <span class="stat-label">In progress</span>
+        <span class="stat-icon stat-icon-progress" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+        </span>
+        <span class="stat-text">
+          <span class="stat-value">{{ stats.inProgress }}</span>
+          <span class="stat-label">In progress</span>
+        </span>
       </div>
       <div class="stat">
-        <span class="stat-value">{{ stats.completed }}</span>
-        <span class="stat-label">Completed</span>
+        <span class="stat-icon stat-icon-completed" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+        </span>
+        <span class="stat-text">
+          <span class="stat-value">{{ stats.completed }}</span>
+          <span class="stat-label">Completed</span>
+        </span>
       </div>
       <div class="stat stat-overdue" :class="{ 'has-value': stats.overdue > 0 }">
-        <span class="stat-value">{{ stats.overdue }}</span>
-        <span class="stat-label">Overdue</span>
+        <span class="stat-icon stat-icon-overdue" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+        </span>
+        <span class="stat-text">
+          <span class="stat-value">{{ stats.overdue }}</span>
+          <span class="stat-label">Overdue</span>
+        </span>
       </div>
     </div>
 
@@ -257,7 +290,7 @@ onMounted(load);
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.75rem;
   margin-bottom: 1.25rem;
 }
@@ -268,9 +301,47 @@ onMounted(load);
   border-radius: var(--radius);
   padding: 0.85rem 1.1rem;
   display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  color: var(--color-primary);
+  background: rgba(79, 70, 229, 0.12);
+}
+
+.stat-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.stat-icon-progress {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.stat-icon-completed {
+  color: var(--color-success);
+  background: rgba(22, 163, 74, 0.12);
+}
+
+.stat-icon-overdue {
+  color: var(--color-danger);
+  background: rgba(220, 38, 38, 0.12);
+}
+
+.stat-text {
+  display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  box-shadow: var(--shadow-sm);
 }
 
 .stat-value {
