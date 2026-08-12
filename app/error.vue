@@ -15,26 +15,18 @@ function handleClear(): void {
 </script>
 
 <template>
-  <div class="error-page">
-    <div class="error-card">
-      <p class="status">{{ error.statusCode }}</p>
-      <h1>{{ message }}</h1>
-      <button class="btn btn-primary" @click="handleClear">Back to Projects</button>
-    </div>
-  </div>
+  <UCard class="error-page">
+    <p class="status">{{ error.statusCode }}</p>
+    <h1>{{ message }}</h1>
+    <UButton color="primary" @click="handleClear">Back to Projects</UButton>
+  </UCard>
 </template>
 
 <style scoped>
 .error-page {
-  min-height: 60vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.error-card {
+  margin: 8vh auto;
+  max-width: 420px;
   text-align: center;
-  padding: 2rem;
 }
 
 .status {

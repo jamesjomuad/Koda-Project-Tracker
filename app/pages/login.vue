@@ -32,54 +32,57 @@ async function onSubmit(): Promise<void> {
 
 <template>
   <section class="auth-page">
-    <div class="auth-card">
-      <header class="auth-head">
-        <span class="auth-mark" aria-hidden="true">K</span>
-        <h1>Welcome back</h1>
-        <p>Sign in to your project tracker.</p>
-      </header>
+    <UCard class="auth-card">
+      <template #header>
+        <div class="auth-head">
+          <span class="auth-mark" aria-hidden="true">K</span>
+          <h1>Welcome back</h1>
+          <p>Sign in to your project tracker.</p>
+        </div>
+      </template>
 
-      <form class="auth-form" novalidate @submit.prevent="onSubmit">
-        <div class="field">
-          <label for="username">Username</label>
-          <input
-            id="username"
+      <UForm class="auth-form" :state="{ username, password }" @submit="onSubmit">
+        <UFormField label="Username" :error="fieldErrors.username">
+          <UInput
             v-model="username"
-            class="input"
-            :class="{ 'input-error': fieldErrors.username }"
-            type="text"
             name="username"
+            type="text"
             autocomplete="username"
             required
             autofocus
+            :error="!!fieldErrors.username"
           />
-          <p v-if="fieldErrors.username" class="field-error">{{ fieldErrors.username }}</p>
-        </div>
+        </UFormField>
 
-        <div class="field">
-          <label for="password">Password</label>
-          <input
-            id="password"
+        <UFormField label="Password" :error="fieldErrors.password">
+          <UInput
             v-model="password"
-            class="input"
-            :class="{ 'input-error': fieldErrors.password }"
-            type="password"
             name="password"
+            type="password"
             autocomplete="current-password"
             required
+            :error="!!fieldErrors.password"
           />
-          <p v-if="fieldErrors.password" class="field-error">{{ fieldErrors.password }}</p>
-        </div>
+        </UFormField>
 
-        <p v-if="error" class="alert alert-error" role="alert">{{ error }}</p>
+        <UAlert
+          v-if="error"
+          color="error"
+          variant="soft"
+          icon="i-lucide-circle-alert"
+          :title="error"
+          role="alert"
+        />
 
-        <button class="btn btn-primary auth-submit" type="submit" :disabled="busy">
+        <UButton class="auth-submit" type="submit" color="primary" block :loading="busy" :disabled="busy">
           {{ busy ? 'Signing in…' : 'Sign in' }}
-        </button>
-      </form>
+        </UButton>
+      </UForm>
 
-      <p class="auth-hint">Assessment demo — username <code>admin</code>, password <code>admin123</code>.</p>
-    </div>
+      <template #footer>
+        <p class="auth-hint">Assessment demo — username <code>admin</code>, password <code>admin123</code>.</p>
+      </template>
+    </UCard>
   </section>
 </template>
 
@@ -95,16 +98,10 @@ async function onSubmit(): Promise<void> {
 .auth-card {
   width: 100%;
   max-width: 400px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  padding: 2rem 1.75rem;
 }
 
 .auth-head {
   text-align: center;
-  margin-bottom: 1.5rem;
 }
 
 .auth-mark {
@@ -139,13 +136,11 @@ async function onSubmit(): Promise<void> {
 }
 
 .auth-submit {
-  width: 100%;
-  justify-content: center;
   margin-top: 0.25rem;
 }
 
 .auth-hint {
-  margin: 1.25rem 0 0;
+  margin: 0;
   text-align: center;
   font-size: 0.78rem;
   color: var(--color-text-muted);

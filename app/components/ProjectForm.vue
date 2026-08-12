@@ -57,100 +57,97 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <form class="project-form" novalidate @submit.prevent="onSubmit">
-    <div v-if="formError" class="alert alert-error" role="alert">{{ formError }}</div>
+  <UForm class="project-form" :state="form" @submit="onSubmit">
+    <UAlert
+      v-if="formError"
+      color="error"
+      variant="soft"
+      icon="i-lucide-circle-alert"
+      :title="formError"
+      class="mb-4"
+    />
 
     <div class="form-grid">
-      <div class="field">
-        <label for="clientName">Client Name *</label>
-        <input
-          id="clientName"
+      <UFormField label="Client Name" required :error="fieldErrors.clientName">
+        <UInput
           v-model="form.clientName"
-          class="input"
-          :class="{ 'input-error': fieldErrors.clientName }"
-          type="text"
+          name="clientName"
           placeholder="e.g. Acme Corporation"
           autocomplete="organization"
+          :error="!!fieldErrors.clientName"
         />
-        <p v-if="fieldErrors.clientName" class="field-error">{{ fieldErrors.clientName }}</p>
-      </div>
+      </UFormField>
 
-      <div class="field">
-        <label for="projectName">Project Name *</label>
-        <input
-          id="projectName"
+      <UFormField label="Project Name" required :error="fieldErrors.projectName">
+        <UInput
           v-model="form.projectName"
-          class="input"
-          :class="{ 'input-error': fieldErrors.projectName }"
-          type="text"
+          name="projectName"
           placeholder="e.g. Corporate Website Redesign"
+          :error="!!fieldErrors.projectName"
         />
-        <p v-if="fieldErrors.projectName" class="field-error">{{ fieldErrors.projectName }}</p>
-      </div>
+      </UFormField>
     </div>
 
-    <div class="field">
-      <label for="description">Description</label>
-      <textarea
-        id="description"
+    <UFormField label="Description">
+      <UTextarea
         v-model="form.description"
-        class="input"
-        rows="3"
+        name="description"
+        :rows="3"
         placeholder="What is this project about?"
-      ></textarea>
+      />
+    </UFormField>
+
+    <div class="form-grid">
+      <UFormField label="Status" required :error="fieldErrors.status">
+        <USelect
+          v-model="form.status"
+          name="status"
+          :items="STATUSES.map((s) => ({ label: s, value: s }))"
+          value-key="value"
+          :error="!!fieldErrors.status"
+        />
+      </UFormField>
+
+      <UFormField label="Priority" required :error="fieldErrors.priority">
+        <USelect
+          v-model="form.priority"
+          name="priority"
+          :items="PRIORITIES.map((p) => ({ label: p, value: p }))"
+          value-key="value"
+          :error="!!fieldErrors.priority"
+        />
+      </UFormField>
     </div>
 
     <div class="form-grid">
-      <div class="field">
-        <label for="status">Status *</label>
-        <select id="status" v-model="form.status" class="select" :class="{ 'input-error': fieldErrors.status }">
-          <option v-for="s in STATUSES" :key="s" :value="s">{{ s }}</option>
-        </select>
-        <p v-if="fieldErrors.status" class="field-error">{{ fieldErrors.status }}</p>
-      </div>
-
-      <div class="field">
-        <label for="priority">Priority *</label>
-        <select id="priority" v-model="form.priority" class="select" :class="{ 'input-error': fieldErrors.priority }">
-          <option v-for="p in PRIORITIES" :key="p" :value="p">{{ p }}</option>
-        </select>
-        <p v-if="fieldErrors.priority" class="field-error">{{ fieldErrors.priority }}</p>
-      </div>
-    </div>
-
-    <div class="form-grid">
-      <div class="field">
-        <label for="startDate">Start Date *</label>
-        <input
-          id="startDate"
+      <UFormField label="Start Date" required :error="fieldErrors.startDate">
+        <UInput
           v-model="form.startDate"
-          class="input"
-          :class="{ 'input-error': fieldErrors.startDate }"
+          name="startDate"
           type="date"
+          :error="!!fieldErrors.startDate"
         />
-        <p v-if="fieldErrors.startDate" class="field-error">{{ fieldErrors.startDate }}</p>
-      </div>
+      </UFormField>
 
-      <div class="field">
-        <label for="dueDate">Due Date *</label>
-        <input
-          id="dueDate"
+      <UFormField label="Due Date" required :error="fieldErrors.dueDate">
+        <UInput
           v-model="form.dueDate"
-          class="input"
-          :class="{ 'input-error': fieldErrors.dueDate }"
+          name="dueDate"
           type="date"
+          :error="!!fieldErrors.dueDate"
         />
-        <p v-if="fieldErrors.dueDate" class="field-error">{{ fieldErrors.dueDate }}</p>
-      </div>
+      </UFormField>
     </div>
 
     <div class="form-actions">
-      <button type="button" class="btn btn-secondary" :disabled="submitting" @click="emit('cancel')">Cancel</button>
-      <button type="submit" class="btn btn-primary" :disabled="submitting">
+      <UButton color="neutral" variant="outline" :disabled="submitting" @click="emit('cancel')">
+        Cancel
+      </UButton>
+      <UButton type="submit" color="primary" :loading="submitting" :disabled="submitting">
         {{ submitting ? 'Saving…' : (mode === 'create' ? 'Create Project' : 'Save Changes') }}
-      </button>
+      </UButton>
     </div>
-  </form>
+  </UForm>
 </template>
 
 <style scoped>
@@ -160,24 +157,8 @@ async function onSubmit(): Promise<void> {
   border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-}
-
-.form-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
-}
-
-@media (max-width: 640px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
+  flex-direction: column;
+  gap: 1rem;
 }
 </style>

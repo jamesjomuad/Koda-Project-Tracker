@@ -171,91 +171,149 @@ onMounted(load);
     </div>
 
     <div class="toolbar">
-      <input
+      <UInput
         v-model="search"
-        class="input search"
+        class="search"
         type="search"
+        icon="i-lucide-search"
         placeholder="Search client or project…"
         aria-label="Search projects"
       />
-      <select v-model="statusFilter" class="select" aria-label="Filter by status">
-        <option value="">All statuses</option>
-        <option v-for="s in STATUSES" :key="s" :value="s">{{ s }}</option>
-      </select>
-      <select v-model="priorityFilter" class="select" aria-label="Filter by priority">
-        <option value="">All priorities</option>
-        <option v-for="p in PRIORITIES" :key="p" :value="p">{{ p }}</option>
-      </select>
-      <select v-model="sortBy" class="select" aria-label="Sort projects">
-        <option value="dueDate">Sort by due date</option>
-        <option value="startDate">Sort by start date</option>
-        <option value="priority">Sort by priority</option>
-        <option value="status">Sort by status</option>
-        <option value="clientName">Sort by client</option>
-        <option value="projectName">Sort by project</option>
-        <option value="createdAt">Sort by created</option>
-      </select>
-      <button
-        class="btn btn-secondary sort-order"
+      <USelect
+        v-model="statusFilter"
+        :items="[{ label: 'All statuses', value: '' }, ...STATUSES.map((s) => ({ label: s, value: s }))]"
+        value-key="value"
+        aria-label="Filter by status"
+      />
+      <USelect
+        v-model="priorityFilter"
+        :items="[{ label: 'All priorities', value: '' }, ...PRIORITIES.map((p) => ({ label: p, value: p }))]"
+        value-key="value"
+        aria-label="Filter by priority"
+      />
+      <USelect
+        v-model="sortBy"
+        :items="[
+          { label: 'Sort by due date', value: 'dueDate' },
+          { label: 'Sort by start date', value: 'startDate' },
+          { label: 'Sort by priority', value: 'priority' },
+          { label: 'Sort by status', value: 'status' },
+          { label: 'Sort by client', value: 'clientName' },
+          { label: 'Sort by project', value: 'projectName' },
+          { label: 'Sort by created', value: 'createdAt' },
+        ]"
+        value-key="value"
+        class="sort-order"
+        aria-label="Sort projects"
+      />
+      <UButton
+        color="neutral"
+        variant="outline"
+        class="sort-order"
+        :icon="sortOrder === 'asc' ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'"
         :aria-label="`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`"
         @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
       >
-        {{ sortOrder === 'asc' ? '↑ Asc' : '↓ Desc' }}
-      </button>
+        {{ sortOrder === 'asc' ? 'Asc' : 'Desc' }}
+      </UButton>
     </div>
 
     <div class="results-meta">
       <span>
         {{ loading ? 'Loading…' : `${projects.length} project${projects.length === 1 ? '' : 's'}` }}
       </span>
-      <button
+      <UButton
         v-if="filtersActive"
-        class="btn btn-link clear-filters"
+        color="primary"
+        variant="link"
+        class="clear-filters"
         type="button"
         @click="clearFilters"
       >
         Clear filters
-      </button>
+      </UButton>
     </div>
 
-    <p v-if="error" class="alert alert-error" role="alert">{{ error }}</p>
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="soft"
+      icon="i-lucide-circle-alert"
+      :title="error"
+      class="mb-4"
+      role="alert"
+    />
 
-    <div v-if="loading && projects.length === 0" class="empty-state" role="status">Loading projects…</div>
+    <UAlert
+      v-if="loading && projects.length === 0"
+      color="info"
+      variant="soft"
+      icon="i-lucide-loader-circle"
+      title="Loading projects…"
+      class="mb-4"
+      role="status"
+    />
 
-    <div v-else-if="!loading && projects.length === 0" class="empty-state">
-      <h3>No projects found</h3>
-      <p>Try adjusting your search or filters, or create a new project.</p>
-      <NuxtLink class="btn btn-primary" to="/projects/new">+ New Project</NuxtLink>
-    </div>
+    <UEmpty v-else-if="!loading && projects.length === 0" icon="i-lucide-folder-open">
+      <template #title>
+        <h3>No projects found</h3>
+      </template>
+      <template #description>
+        <p>Try adjusting your search or filters, or create a new project.</p>
+      </template>
+      <template #actions>
+        <UButton to="/projects/new" icon="i-lucide-plus" color="primary">New Project</UButton>
+      </template>
+    </UEmpty>
 
     <ul v-else class="project-list" :class="{ 'is-refreshing': loading }">
-      <li v-for="project in projects" :key="project.id" class="project-card">
-        <div class="card-top">
-          <div>
-            <h3 class="project-name">
-              <NuxtLink :to="`/projects/${project.id}/edit`">{{ project.projectName }}</NuxtLink>
-            </h3>
-            <p class="client-name">{{ project.clientName }}</p>
+      <li v-for="project in projects" :key="project.id">
+        <UCard class="project-card">
+          <div class="card-top">
+            <div>
+              <h3 class="project-name">
+                <NuxtLink :to="`/projects/${project.id}/edit`">{{ project.projectName }}</NuxtLink>
+              </h3>
+              <p class="client-name">{{ project.clientName }}</p>
+            </div>
+            <div class="card-actions">
+              <UButton
+                :to="`/projects/${project.id}/edit`"
+                color="neutral"
+                variant="outline"
+                size="xs"
+                icon="i-lucide-pencil"
+              >
+                Edit
+              </UButton>
+              <UButton
+                color="error"
+                variant="outline"
+                size="xs"
+                icon="i-lucide-trash-2"
+                @click="deleteTarget = project"
+              >
+                Delete
+              </UButton>
+            </div>
           </div>
-          <div class="card-actions">
-            <NuxtLink class="btn btn-secondary btn-sm" :to="`/projects/${project.id}/edit`">Edit</NuxtLink>
-            <button class="btn btn-danger-outline btn-sm" @click="deleteTarget = project">Delete</button>
+
+          <p v-if="project.description" class="description">
+            {{ project.description }}
+          </p>
+
+          <div class="card-meta">
+            <ProjectStatusBadge :status="project.status" />
+            <ProjectPriorityBadge :priority="project.priority" />
+            <span
+              class="date"
+              :class="[`date-${dueInfo(project).kind}`, { completed: project.status === 'Completed' }]"
+              :title="`Due ${project.dueDate}`"
+            >
+              {{ dueInfo(project).label }}
+            </span>
           </div>
-        </div>
-
-        <p v-if="project.description" class="description">{{ project.description }}</p>
-
-        <div class="card-meta">
-          <ProjectStatusBadge :status="project.status" />
-          <ProjectPriorityBadge :priority="project.priority" />
-          <span
-            class="date"
-            :class="[`date-${dueInfo(project).kind}`, { completed: project.status === 'Completed' }]"
-            :title="`Due ${project.dueDate}`"
-          >
-            {{ dueInfo(project).label }}
-          </span>
-        </div>
+        </UCard>
       </li>
     </ul>
   </section>
@@ -410,14 +468,7 @@ onMounted(load);
 }
 
 .project-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 1.1rem 1.25rem;
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  height: 100%;
   transition: box-shadow 0.15s ease;
 }
 
@@ -456,11 +507,6 @@ onMounted(load);
   display: flex;
   gap: 0.4rem;
   flex-shrink: 0;
-}
-
-.btn-sm {
-  padding: 0.3rem 0.65rem;
-  font-size: 0.8rem;
 }
 
 .description {

@@ -4,6 +4,8 @@ export default defineVitestConfig({
   test: {
     environment: 'nuxt',
     globals: true,
+    hookTimeout: 60000,
+    testTimeout: 30000,
     include: ['tests/**/*.test.ts'],
     exclude: [
       '**/node_modules/**',

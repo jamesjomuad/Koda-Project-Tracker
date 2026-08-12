@@ -19,6 +19,7 @@ Built as a Full Stack Developer technical assessment (see `docs/REQUIREMENTS.md`
 | Layer    | Choice                                                          |
 | -------- | --------------------------------------------------------------- |
 | Frontend | Nuxt 4 (Vue 3, TypeScript), server-rendered pages               |
+| UI       | Nuxt UI v4 (Tailwind CSS v4, Lucide icons, Vue Aria)             |
 | Backend  | Nitro server routes (REST API) with h3                           |
 | Validation | zod v4 (shared between server and client)                      |
 | Database | SQLite via better-sqlite3 (single-file, zero-setup)              |
@@ -149,6 +150,7 @@ All errors follow one shape, making client handling predictable:
 - **Consistent error handling** — a global Nitro error handler returns the JSON envelope for `/api/*` routes while delegating page errors to Nuxt's default handler (so `app/error.vue` renders normally).
 - **Stateless session auth** — the login endpoint signs a username + expiry into an HMAC token (`node:crypto`) stored in an httpOnly, SameSite cookie. No session table is needed, and `getSessionUser()` just verifies the signature on each request. The Nuxt app's global middleware redirects unauthenticated users to `/login`. Credentials and the signing secret come from environment variables with assessment-friendly demo defaults.
 - **TypeScript everywhere** — shared types, `strict` settings, and `nuxt typecheck` (vue-tsc) as a CI-friendly guard.
+- **Nuxt UI v4** — the interface is built from Nuxt UI's accessible components (buttons, forms, badges, modal, alerts, empty state) on Tailwind CSS v4. Icons come from the Lucide collection and are scanned into a local client bundle (`icon.clientBundle.scan`), so the production server renders them without network calls. Original design tokens and layout classes are kept in `app/assets/css/main.css` for app-specific styling.
 - **Two-tier testing** — pure unit tests for the validation logic plus end-to-end API tests that boot a real Nitro server against a temp SQLite DB (see `vitest.config.ts` / `vitest.e2e.config.ts`).
 
 ## AI Tool Disclosure

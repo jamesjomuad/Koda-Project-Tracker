@@ -19,13 +19,20 @@ async function onLogout(): Promise<void> {
         </NuxtLink>
         <nav v-if="!isLogin" class="nav">
           <NuxtLink to="/" class="nav-link">Projects</NuxtLink>
-          <NuxtLink to="/projects/new" class="btn btn-primary">+ New Project</NuxtLink>
+          <UButton to="/projects/new" icon="i-lucide-plus" color="primary">New Project</UButton>
           <span v-if="user" class="nav-user" :title="`Signed in as ${user.username}`">
             {{ user.username }}
           </span>
-          <button v-if="user" type="button" class="btn btn-secondary btn-sm" @click="onLogout">
+          <UButton
+            v-if="user"
+            icon="i-lucide-log-out"
+            color="neutral"
+            variant="outline"
+            size="xs"
+            @click="onLogout"
+          >
             Log out
-          </button>
+          </UButton>
         </nav>
       </div>
     </header>

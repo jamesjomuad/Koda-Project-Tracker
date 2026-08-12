@@ -27,8 +27,24 @@ onMounted(load);
       <p class="subtitle">Update the details of this project.</p>
     </header>
 
-    <p v-if="loadError" class="alert alert-error" role="alert">{{ loadError }}</p>
-    <div v-else-if="!project" class="empty-state" role="status">Loading project…</div>
+    <UAlert
+      v-if="loadError"
+      color="error"
+      variant="soft"
+      icon="i-lucide-circle-alert"
+      :title="loadError"
+      class="mb-4"
+      role="alert"
+    />
+    <UAlert
+      v-else-if="!project"
+      color="info"
+      variant="soft"
+      icon="i-lucide-loader-circle"
+      title="Loading project…"
+      class="mb-4"
+      role="status"
+    />
     <ProjectForm
       v-else
       mode="edit"
