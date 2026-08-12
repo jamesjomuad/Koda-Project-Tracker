@@ -130,6 +130,17 @@ All errors follow one shape, making client handling predictable:
 }
 ```
 
+## Assumptions
+
+- **Assessment demo context** — this is a single-user demo app. `Authentication` uses default credentials (`admin`/`admin123`) and a single shared user; it fences the UI rather than modeling real user management.
+- **Dates** are plain `YYYY-MM-DD` strings. They are treated as calendar dates in the browser's local timezone for "overdue" / "due soon" calculations, never converted to UTC.
+- **Search** matches the client name **or** project name, case-insensitively.
+- **Default sort** is by due date ascending; sorting by priority/status uses the intended business ordering (High→Medium→Low, Planning→Complete) rather than alphabetical.
+- **Seed data** — the 12 example projects from `docs/test_data.json` are loaded automatically only when the database is empty, so user-created records are never overwritten.
+- **Persistent storage** is a local SQLite file (`data/projects.db`); for this assessment there is no external database or deployment target.
+- **Status and priority** are closed enums per the spec (four statuses, three priorities); `description` is optional.
+- Stats, friendly due-date labels, and full-width layout are enhancements beyond the core requirements, not required behavior.
+
 ## Technical Decisions
 
 - **Nuxt 4 monorepo-style layout** — `app/`, `server/`, and `shared/` at the root. `shared/` is aliased as `#shared` so the same TypeScript types and seed data are used by both the client and the server, eliminating drift.

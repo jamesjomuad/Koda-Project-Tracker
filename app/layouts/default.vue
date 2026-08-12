@@ -1,5 +1,7 @@
 <script setup lang="ts">
 const { user, logout } = useAuth();
+const route = useRoute();
+const isLogin = computed(() => route.path === '/login');
 
 async function onLogout(): Promise<void> {
   await logout();
@@ -15,7 +17,7 @@ async function onLogout(): Promise<void> {
           <span class="brand-mark" aria-hidden="true">K</span>
           <span class="brand-name">Koda Project Tracker</span>
         </NuxtLink>
-        <nav class="nav">
+        <nav v-if="!isLogin" class="nav">
           <NuxtLink to="/" class="nav-link">Projects</NuxtLink>
           <NuxtLink to="/projects/new" class="btn btn-primary">+ New Project</NuxtLink>
           <span v-if="user" class="nav-user" :title="`Signed in as ${user.username}`">
