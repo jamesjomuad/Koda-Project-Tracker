@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { nextTick, onUnmounted, ref, watch } from 'vue';
+
 const props = defineProps<{
   open: boolean;
   title: string;
@@ -11,17 +13,79 @@ const emit = defineEmits<{
   confirm: [];
   cancel: [];
 }>();
+
+const dialogRef = ref<HTMLElement | null>(null);
+const confirmRef = ref<HTMLButtonElement | null>(null);
+let lastFocused: HTMLElement | null = null;
+
+const dialogTitleId = 'confirm-dialog-title';
+const dialogMessageId = 'confirm-dialog-message';
+
+function onKeydown(e: KeyboardEvent): void {
+  if (!props.open) return;
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    if (!props.busy) emit('cancel');
+  }
+  if (e.key === 'Tab' && dialogRef.value) {
+    const focusables = dialogRef.value.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0]!;
+    const last = focusables[focusables.length - 1]!;
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+}
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
+
+watch(
+  () => props.open,
+  (open) => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    nextTick(() => {
+      if (open) {
+        lastFocused = document.activeElement as HTMLElement | null;
+        confirmRef.value?.focus();
+      } else {
+        lastFocused?.focus();
+        lastFocused = null;
+      }
+    });
+  },
+);
 </script>
 
 <template>
   <Teleport to="body">
-    <div v-if="props.open" class="overlay" @click.self="emit('cancel')">
-      <div class="dialog" role="dialog" aria-modal="true" :aria-label="props.title">
-        <h3 class="dialog-title">{{ props.title }}</h3>
-        <p class="dialog-message">{{ props.message }}</p>
+    <div v-if="props.open" class="overlay" @click.self="props.busy ? null : emit('cancel')">
+      <div
+        ref="dialogRef"
+        class="dialog"
+        role="alertdialog"
+        aria-modal="true"
+        :aria-labelledby="dialogTitleId"
+        :aria-describedby="dialogMessageId"
+        @keydown="onKeydown"
+      >
+        <h3 :id="dialogTitleId" class="dialog-title">{{ props.title }}</h3>
+        <p :id="dialogMessageId" class="dialog-message">{{ props.message }}</p>
         <div class="dialog-actions">
           <button class="btn btn-secondary" :disabled="props.busy" @click="emit('cancel')">Cancel</button>
-          <button class="btn btn-danger" :disabled="props.busy" @click="emit('confirm')">
+          <button ref="confirmRef" class="btn btn-danger" :disabled="props.busy" @click="emit('confirm')">
             {{ props.busy ? 'Deleting…' : (props.confirmLabel || 'Delete') }}
           </button>
         </div>

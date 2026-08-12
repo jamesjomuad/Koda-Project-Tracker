@@ -1,7 +1,7 @@
 <template>
   <div class="layout">
     <header class="header">
-      <div class="container header-inner">
+      <div class="header-inner">
         <NuxtLink to="/" class="brand">
           <span class="brand-mark" aria-hidden="true">K</span>
           <span class="brand-name">Koda Project Tracker</span>
@@ -12,10 +12,10 @@
         </nav>
       </div>
     </header>
-    <main class="container page-body">
+    <main class="page-body">
       <slot />
     </main>
-    <footer class="container footer">
+    <footer class="footer">
       <p>Client Project Tracker · Technical assessment</p>
     </footer>
   </div>
@@ -32,6 +32,7 @@
   align-items: center;
   justify-content: space-between;
   height: 64px;
+  padding: 0 1.25rem;
 }
 
 .brand {
@@ -77,8 +78,7 @@
 }
 
 .page-body {
-  padding-top: 1.5rem;
-  padding-bottom: 3rem;
+  padding: 1.5rem 1.25rem 3rem;
   min-height: calc(100vh - 160px);
 }
 

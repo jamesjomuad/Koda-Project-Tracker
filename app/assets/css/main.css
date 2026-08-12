@@ -110,6 +110,29 @@ textarea {
   background: var(--color-danger-dark);
 }
 
+.btn-danger-outline {
+  background: var(--color-surface);
+  border-color: #fecaca;
+  color: var(--color-danger);
+}
+
+.btn-danger-outline:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: var(--color-danger);
+}
+
+.btn-link {
+  background: transparent;
+  border-color: transparent;
+  color: var(--color-primary);
+  padding: 0.25rem 0.5rem;
+  text-decoration: none;
+}
+
+.btn-link:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
 .field {
   margin-bottom: 1rem;
 }

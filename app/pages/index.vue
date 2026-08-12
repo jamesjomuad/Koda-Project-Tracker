@@ -43,6 +43,50 @@ function sortArrow(field: SortField): string {
   return sortOrder.value === 'asc' ? '↑' : '↓';
 }
 
+/** Whole days from local midnight today to the given YYYY-MM-DD date (negative = past). */
+function dayDiff(dateStr: string): number {
+  const [y = 0, m = 0, d = 0] = dateStr.split('-').map(Number);
+  const target = new Date(y, m - 1, d).getTime();
+  const now = new Date();
+  const midnightToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  return Math.round((target - midnightToday) / 86_400_000);
+}
+
+function formatDate(dateStr: string): string {
+  const [y = 0, m = 0, d = 0] = dateStr.split('-').map(Number);
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+  if (y !== new Date().getFullYear()) opts.year = 'numeric';
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', opts);
+}
+
+function dueInfo(project: Project): { label: string; kind: 'normal' | 'soon' | 'overdue' } {
+  if (project.status === 'Completed') {
+    return { label: `Done · ${formatDate(project.dueDate)}`, kind: 'normal' };
+  }
+  const diff = dayDiff(project.dueDate);
+  if (diff < 0) return { label: `Overdue by ${Math.abs(diff)}d`, kind: 'overdue' };
+  if (diff === 0) return { label: 'Due today', kind: 'soon' };
+  if (diff <= 7) return { label: `Due in ${diff}d`, kind: 'soon' };
+  return { label: `Due ${formatDate(project.dueDate)}`, kind: 'normal' };
+}
+
+const stats = computed(() => ({
+  total: projects.value.length,
+  inProgress: projects.value.filter((p) => p.status === 'In Progress').length,
+  completed: projects.value.filter((p) => p.status === 'Completed').length,
+  overdue: projects.value.filter((p) => p.status !== 'Completed' && dayDiff(p.dueDate) < 0).length,
+}));
+
+const filtersActive = computed(
+  () => !!search.value || !!statusFilter.value || !!priorityFilter.value,
+);
+
+function clearFilters(): void {
+  search.value = '';
+  statusFilter.value = '';
+  priorityFilter.value = '';
+}
+
 const deleteTarget = ref<Project | null>(null);
 const deleteBusy = ref(false);
 const deleteError = ref<string | null>(null);
@@ -73,6 +117,25 @@ onMounted(load);
         <p class="subtitle">Track client projects, progress, and priorities.</p>
       </div>
     </header>
+
+    <div class="stats" aria-label="Project summary">
+      <div class="stat">
+        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-label">Projects</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ stats.inProgress }}</span>
+        <span class="stat-label">In progress</span>
+      </div>
+      <div class="stat">
+        <span class="stat-value">{{ stats.completed }}</span>
+        <span class="stat-label">Completed</span>
+      </div>
+      <div class="stat stat-overdue" :class="{ 'has-value': stats.overdue > 0 }">
+        <span class="stat-value">{{ stats.overdue }}</span>
+        <span class="stat-label">Overdue</span>
+      </div>
+    </div>
 
     <div class="toolbar">
       <input
@@ -108,6 +171,20 @@ onMounted(load);
       </button>
     </div>
 
+    <div class="results-meta">
+      <span>
+        {{ loading ? 'Loading…' : `${projects.length} project${projects.length === 1 ? '' : 's'}` }}
+      </span>
+      <button
+        v-if="filtersActive"
+        class="btn btn-link clear-filters"
+        type="button"
+        @click="clearFilters"
+      >
+        Clear filters
+      </button>
+    </div>
+
     <p v-if="error" class="alert alert-error" role="alert">{{ error }}</p>
 
     <div v-if="loading && projects.length === 0" class="empty-state" role="status">Loading projects…</div>
@@ -118,7 +195,7 @@ onMounted(load);
       <NuxtLink class="btn btn-primary" to="/projects/new">+ New Project</NuxtLink>
     </div>
 
-    <ul v-else class="project-list">
+    <ul v-else class="project-list" :class="{ 'is-refreshing': loading }">
       <li v-for="project in projects" :key="project.id" class="project-card">
         <div class="card-top">
           <div>
@@ -129,7 +206,7 @@ onMounted(load);
           </div>
           <div class="card-actions">
             <NuxtLink class="btn btn-secondary btn-sm" :to="`/projects/${project.id}/edit`">Edit</NuxtLink>
-            <button class="btn btn-danger btn-sm" @click="deleteTarget = project">Delete</button>
+            <button class="btn btn-danger-outline btn-sm" @click="deleteTarget = project">Delete</button>
           </div>
         </div>
 
@@ -138,8 +215,12 @@ onMounted(load);
         <div class="card-meta">
           <ProjectStatusBadge :status="project.status" />
           <ProjectPriorityBadge :priority="project.priority" />
-          <span class="date" :class="{ overdue: project.dueDate < new Date().toISOString().slice(0, 10) && project.status !== 'Completed' }">
-            Due {{ project.dueDate }}
+          <span
+            class="date"
+            :class="[`date-${dueInfo(project).kind}`, { completed: project.status === 'Completed' }]"
+            :title="`Due ${project.dueDate}`"
+          >
+            {{ dueInfo(project).label }}
           </span>
         </div>
       </li>
@@ -174,6 +255,45 @@ onMounted(load);
   color: var(--color-text-muted);
 }
 
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.stat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.stat-overdue .stat-value {
+  color: var(--color-text-muted);
+  transition: color 0.15s ease;
+}
+
+.stat-overdue.has-value .stat-value {
+  color: var(--color-danger);
+}
+
 .toolbar {
   display: grid;
   grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(130px, 1fr)) auto;
@@ -189,6 +309,21 @@ onMounted(load);
   white-space: nowrap;
 }
 
+.results-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.clear-filters {
+  padding: 0;
+  font-size: 0.85rem;
+}
+
 .project-list {
   list-style: none;
   margin: 0;
@@ -196,6 +331,11 @@ onMounted(load);
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 1rem;
+  transition: opacity 0.15s ease;
+}
+
+.project-list.is-refreshing {
+  opacity: 0.5;
 }
 
 .project-card {
@@ -269,10 +409,21 @@ onMounted(load);
   font-size: 0.8rem;
   color: var(--color-text-muted);
   margin-left: auto;
+  white-space: nowrap;
 }
 
-.date.overdue {
+.date-overdue {
   color: var(--color-danger);
+  font-weight: 600;
+}
+
+.date-soon {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.date.completed {
+  color: var(--color-success);
   font-weight: 600;
 }
 
