@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { STATUSES, PRIORITIES, useProjects, extractApiError } from '../composables/useProjects';
+import { STATUSES, PRIORITIES, useProjectsStore, extractApiError } from '../stores/projects';
 import type { Project, SortField, SortOrder } from '#shared/types/project';
 
 useSeoMeta({ title: 'Projects · Koda Project Tracker' });
 
-const { projects, loading, error, fetchProjects, deleteProject } = useProjects();
+const store = useProjectsStore();
 
 const search = ref('');
-const statusFilter = ref<'' | Project['status']>('');
-const priorityFilter = ref<'' | Project['priority']>('');
+const statusFilter = ref<Project['status'] | undefined>(undefined);
+const priorityFilter = ref<Project['priority'] | undefined>(undefined);
 const sortBy = ref<SortField>('dueDate');
 const sortOrder = ref<SortOrder>('asc');
 
@@ -20,7 +20,7 @@ watch([search, statusFilter, priorityFilter, sortBy, sortOrder], () => {
 }, { deep: true });
 
 async function load(): Promise<void> {
-  await fetchProjects({
+  await store.fetchProjects({
     search: search.value,
     status: statusFilter.value,
     priority: priorityFilter.value,
@@ -71,10 +71,10 @@ function dueInfo(project: Project): { label: string; kind: 'normal' | 'soon' | '
 }
 
 const stats = computed(() => ({
-  total: projects.value.length,
-  inProgress: projects.value.filter((p) => p.status === 'In Progress').length,
-  completed: projects.value.filter((p) => p.status === 'Completed').length,
-  overdue: projects.value.filter((p) => p.status !== 'Completed' && dayDiff(p.dueDate) < 0).length,
+  total: store.projects.length,
+  inProgress: store.projects.filter((p) => p.status === 'In Progress').length,
+  completed: store.projects.filter((p) => p.status === 'Completed').length,
+  overdue: store.projects.filter((p) => p.status !== 'Completed' && dayDiff(p.dueDate) < 0).length,
 }));
 
 const filtersActive = computed(
@@ -83,8 +83,8 @@ const filtersActive = computed(
 
 function clearFilters(): void {
   search.value = '';
-  statusFilter.value = '';
-  priorityFilter.value = '';
+  statusFilter.value = undefined;
+  priorityFilter.value = undefined;
 }
 
 const deleteTarget = ref<Project | null>(null);
@@ -96,7 +96,7 @@ async function confirmDelete(): Promise<void> {
   deleteBusy.value = true;
   deleteError.value = null;
   try {
-    await deleteProject(deleteTarget.value.id);
+    await store.deleteProject(deleteTarget.value.id);
     deleteTarget.value = null;
     await load();
   } catch (e) {
@@ -181,14 +181,16 @@ onMounted(load);
       />
       <USelect
         v-model="statusFilter"
-        :items="[{ label: 'All statuses', value: '' }, ...STATUSES.map((s) => ({ label: s, value: s }))]"
+        :items="STATUSES.map((s) => ({ label: s, value: s }))"
         value-key="value"
+        placeholder="All statuses"
         aria-label="Filter by status"
       />
       <USelect
         v-model="priorityFilter"
-        :items="[{ label: 'All priorities', value: '' }, ...PRIORITIES.map((p) => ({ label: p, value: p }))]"
+        :items="PRIORITIES.map((p) => ({ label: p, value: p }))"
         value-key="value"
+        placeholder="All priorities"
         aria-label="Filter by priority"
       />
       <USelect
@@ -220,7 +222,7 @@ onMounted(load);
 
     <div class="results-meta">
       <span>
-        {{ loading ? 'Loading…' : `${projects.length} project${projects.length === 1 ? '' : 's'}` }}
+        {{ store.loading ? 'Loading…' : `${store.projects.length} project${store.projects.length === 1 ? '' : 's'}` }}
       </span>
       <UButton
         v-if="filtersActive"
@@ -235,17 +237,17 @@ onMounted(load);
     </div>
 
     <UAlert
-      v-if="error"
+      v-if="store.error"
       color="error"
       variant="soft"
       icon="i-lucide-circle-alert"
-      :title="error"
+      :title="store.error"
       class="mb-4"
       role="alert"
     />
 
     <UAlert
-      v-if="loading && projects.length === 0"
+      v-if="store.loading && store.projects.length === 0"
       color="info"
       variant="soft"
       icon="i-lucide-loader-circle"
@@ -254,7 +256,7 @@ onMounted(load);
       role="status"
     />
 
-    <UEmpty v-else-if="!loading && projects.length === 0" icon="i-lucide-folder-open">
+    <UEmpty v-else-if="!store.loading && store.projects.length === 0" icon="i-lucide-folder-open">
       <template #title>
         <h3>No projects found</h3>
       </template>
@@ -266,8 +268,8 @@ onMounted(load);
       </template>
     </UEmpty>
 
-    <ul v-else class="project-list" :class="{ 'is-refreshing': loading }">
-      <li v-for="project in projects" :key="project.id">
+    <ul v-else class="project-list" :class="{ 'is-refreshing': store.loading }">
+      <li v-for="project in store.projects" :key="project.id">
         <UCard class="project-card">
           <div class="card-top">
             <div>

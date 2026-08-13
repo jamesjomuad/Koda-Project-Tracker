@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { STATUSES, PRIORITIES } from '../composables/useProjects';
-import { extractApiError } from '../composables/useProjects';
+import { STATUSES, PRIORITIES, useProjectsStore } from '../stores/projects';
+import { extractApiError } from '../stores/projects';
 import type { ProjectPayload, Project } from '#shared/types/project';
 
 const props = withDefaults(defineProps<{
@@ -40,10 +40,10 @@ async function onSubmit(): Promise<void> {
   clearErrors();
   submitting.value = true;
   try {
-    const { createProject, updateProject } = useProjects();
+    const store = useProjectsStore();
     const project = props.mode === 'create'
-      ? await createProject(form)
-      : await updateProject(props.initial!.id, form);
+      ? await store.createProject(form)
+      : await store.updateProject(props.initial!.id, form);
     emit('submitted', project);
     router.push('/');
   } catch (e) {

@@ -19,6 +19,7 @@ async function onLogout(): Promise<void> {
         </NuxtLink>
         <nav v-if="!isLogin" class="nav">
           <NuxtLink to="/" class="nav-link">Projects</NuxtLink>
+          <NuxtLink to="/kanban" class="nav-link">Board</NuxtLink>
           <UButton to="/projects/new" icon="i-lucide-plus" color="primary">New Project</UButton>
           <span v-if="user" class="nav-user" :title="`Signed in as ${user.username}`">
             {{ user.username }}
@@ -49,6 +50,9 @@ async function onLogout(): Promise<void> {
 .header {
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 30;
 }
 
 .header-inner {

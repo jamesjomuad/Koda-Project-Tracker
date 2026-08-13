@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { extractApiError } from '../composables/useProjects';
+import { extractApiError } from '../stores/projects';
 
 useSeoMeta({ title: 'Login · Koda Project Tracker' });
 
@@ -51,6 +51,7 @@ async function onSubmit(): Promise<void> {
             required
             autofocus
             :error="!!fieldErrors.username"
+            class="auth-input"
           />
         </UFormField>
 
@@ -62,6 +63,7 @@ async function onSubmit(): Promise<void> {
             autocomplete="current-password"
             required
             :error="!!fieldErrors.password"
+            class="auth-input"
           />
         </UFormField>
 
@@ -133,6 +135,10 @@ async function onSubmit(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.auth-input {
+  width: 100%;
 }
 
 .auth-submit {
