@@ -128,7 +128,7 @@ onMounted(() => store.fetchProjects());
           </div>
           <div class="form-field">
             <label class="form-label">Description</label>
-            <UInput v-model="editingProject.description" placeholder="Optional description" />
+            <UTextarea v-model="editingProject.description" placeholder="Optional description" :rows="3" />
           </div>
           <div class="form-row">
             <div class="form-field">

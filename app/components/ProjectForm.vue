@@ -64,7 +64,6 @@ async function onSubmit(): Promise<void> {
       variant="soft"
       icon="i-lucide-circle-alert"
       :title="formError"
-      class="mb-4"
     />
 
     <div class="form-grid">
@@ -74,7 +73,7 @@ async function onSubmit(): Promise<void> {
           name="clientName"
           placeholder="e.g. Acme Corporation"
           autocomplete="organization"
-          :error="!!fieldErrors.clientName"
+          class="w-full"
         />
       </UFormField>
 
@@ -83,7 +82,7 @@ async function onSubmit(): Promise<void> {
           v-model="form.projectName"
           name="projectName"
           placeholder="e.g. Corporate Website Redesign"
-          :error="!!fieldErrors.projectName"
+          class="w-full"
         />
       </UFormField>
     </div>
@@ -94,6 +93,7 @@ async function onSubmit(): Promise<void> {
         name="description"
         :rows="3"
         placeholder="What is this project about?"
+        class="w-full"
       />
     </UFormField>
 
@@ -104,7 +104,7 @@ async function onSubmit(): Promise<void> {
           name="status"
           :items="STATUSES.map((s) => ({ label: s, value: s }))"
           value-key="value"
-          :error="!!fieldErrors.status"
+          class="w-full"
         />
       </UFormField>
 
@@ -114,7 +114,7 @@ async function onSubmit(): Promise<void> {
           name="priority"
           :items="PRIORITIES.map((p) => ({ label: p, value: p }))"
           value-key="value"
-          :error="!!fieldErrors.priority"
+          class="w-full"
         />
       </UFormField>
     </div>
@@ -125,7 +125,7 @@ async function onSubmit(): Promise<void> {
           v-model="form.startDate"
           name="startDate"
           type="date"
-          :error="!!fieldErrors.startDate"
+          class="w-full"
         />
       </UFormField>
 
@@ -134,7 +134,7 @@ async function onSubmit(): Promise<void> {
           v-model="form.dueDate"
           name="dueDate"
           type="date"
-          :error="!!fieldErrors.dueDate"
+          class="w-full"
         />
       </UFormField>
     </div>
@@ -159,6 +159,6 @@ async function onSubmit(): Promise<void> {
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 </style>

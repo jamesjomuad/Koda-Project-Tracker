@@ -55,6 +55,12 @@ async function onLogout(): Promise<void> {
   z-index: 30;
 }
 
+.layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 .header-inner {
   display: flex;
   align-items: center;
@@ -116,19 +122,20 @@ async function onLogout(): Promise<void> {
 }
 
 .page-body {
+  flex: 1;
   padding: 1.5rem 1.25rem 3rem;
-  min-height: calc(100vh - 160px);
 }
 
 .footer {
   border-top: 1px solid var(--color-border);
-  padding-top: 1rem;
-  padding-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  text-align: center;
 }
 
 .footer p {
   margin: 0;
   color: var(--color-text-muted);
   font-size: 0.8rem;
+  letter-spacing: 0.01em;
 }
 </style>
