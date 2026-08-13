@@ -4,6 +4,9 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
   modules: ['@nuxt/ui', '@pinia/nuxt'],
+  runtimeConfig: {
+    databaseUrl: process.env.DATABASE_URL ?? '',
+  },
   icon: {
     clientBundle: {
       scan: true,
