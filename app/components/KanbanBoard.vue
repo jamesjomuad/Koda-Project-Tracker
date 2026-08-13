@@ -2,9 +2,11 @@
 import { VueDraggable } from 'vue-draggable-plus';
 import type { KanbanColumn } from '../stores/projects';
 import type { Project, ProjectStatus } from '#shared/types/project';
+import type { User } from '#shared/types/user';
 
 const props = defineProps<{
   columns: KanbanColumn[];
+  users?: User[];
 }>();
 
 const emit = defineEmits<{
@@ -44,6 +46,7 @@ watch(
         :status="col.status"
         :label="col.label"
         :projects="col.projects"
+        :users="props.users"
         @move="(project, toStatus) => emit('move', project, toStatus)"
         @add="(status, name) => emit('add', status, name)"
         @edit="(p) => emit('edit', p)"

@@ -145,4 +145,24 @@ const dueInfo = computed(() => {
   color: #b45309;
   font-weight: 600;
 }
+
+.card-assignee {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.avatar-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
 </style>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { VueDraggable } from 'vue-draggable-plus';
 import type { Project, ProjectStatus } from '#shared/types/project';
+import type { User } from '#shared/types/user';
 
 const props = defineProps<{
   status: ProjectStatus;
   label: string;
   projects: Project[];
+  users?: User[];
 }>();
 
 const emit = defineEmits<{
@@ -96,6 +98,7 @@ const colorMap: Record<ProjectStatus, 'info' | 'warning' | 'neutral' | 'success'
       <div v-for="project in localProjects" :key="project.id">
         <KanbanCard
           :project="project"
+          :users="props.users"
           @edit="(p) => emit('edit', p)"
           @delete="(p) => emit('delete', p)"
         />

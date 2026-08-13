@@ -9,6 +9,11 @@ const store = useProjectsStore();
 const editModalOpen = ref(false);
 const editingProject = ref<Project | null>(null);
 
+const userItems = computed(() => [
+  { label: 'Unassigned', value: null },
+  ...store.users.map((u) => ({ label: u.name, value: u.id })),
+]);
+
 const deleteTarget = ref<Project | null>(null);
 const deleteBusy = ref(false);
 const deleteError = ref<string | null>(null);
@@ -51,6 +56,7 @@ async function saveEdit(): Promise<void> {
       priority: editingProject.value.priority,
       startDate: editingProject.value.startDate,
       dueDate: editingProject.value.dueDate,
+      assignedTo: editingProject.value.assignedTo,
     });
     editModalOpen.value = false;
     editingProject.value = null;
@@ -80,17 +86,15 @@ async function confirmDelete(): Promise<void> {
   }
 }
 
-onMounted(() => store.fetchProjects());
+onMounted(() => {
+  store.fetchProjects();
+  store.fetchUsers();
+});
 </script>
 
 <template>
   <section>
-    <header class="page-head">
-      <div>
-        <h1>Kanban Board</h1>
-        <p class="subtitle">Drag projects between columns to update their status.</p>
-      </div>
-    </header>
+    
 
     <UAlert
       v-if="store.error"
@@ -104,6 +108,7 @@ onMounted(() => store.fetchProjects());
 
     <KanbanBoard
       :columns="store.columns"
+      :users="store.users"
       @reorder-columns="store.reorderColumns"
       @move="handleMove"
       @add="handleAdd"
@@ -166,6 +171,14 @@ onMounted(() => store.fetchProjects());
               <label class="form-label">Due Date</label>
               <UInput v-model="editingProject.dueDate" type="date" />
             </div>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Assigned To</label>
+            <USelect
+              v-model="editingProject.assignedTo"
+              :items="userItems"
+              value-key="value"
+            />
           </div>
         </div>
       </template>
