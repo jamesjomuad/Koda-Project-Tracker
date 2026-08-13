@@ -44,6 +44,7 @@ const projectPayloadSchema = z
     priority: z.enum(PRIORITIES, { message: `Priority must be one of: ${PRIORITIES.join(', ')}` }),
     startDate: dateField('Start date'),
     dueDate: dateField('Due date'),
+    assignedTo: z.number().int().positive().nullable().optional().default(null),
   })
   .refine((p) => p.dueDate >= p.startDate, {
     message: 'Due date cannot be earlier than start date',

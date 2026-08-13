@@ -4,9 +4,37 @@ import { setup } from '@nuxt/test-utils/e2e';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { PrismaClient } from '@prisma/client';
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 
 const tempDir = mkdtempSync(path.join(tmpdir(), 'koda-test-'));
-process.env.DB_PATH = path.join(tempDir, 'test.db');
+const dbPath = path.join(tempDir, 'test.db');
+process.env.DATABASE_URL = `file:${dbPath}`;
+
+const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+const prisma = new PrismaClient({ adapter });
+await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  role TEXT NOT NULL DEFAULT 'member',
+  createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+  updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS projects (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  clientName TEXT NOT NULL,
+  projectName TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL CHECK (status IN ('Planning', 'In Progress', 'On Hold', 'Completed')),
+  priority TEXT NOT NULL CHECK (priority IN ('Low', 'Medium', 'High')),
+  startDate TEXT NOT NULL,
+  dueDate TEXT NOT NULL,
+  assignedTo INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+  updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
+await prisma.$disconnect();
 
 await setup({ server: true, port: 3199, build: true });
 

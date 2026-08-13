@@ -24,11 +24,13 @@ export interface ProjectPayload {
   priority: ProjectPriority;
   startDate: string;
   dueDate: string;
+  assignedTo?: number | null;
 }
 
 export interface Project extends ProjectPayload {
   id: number;
   description: string;
+  assignedTo: number | null;
   createdAt: string;
   updatedAt: string;
 }

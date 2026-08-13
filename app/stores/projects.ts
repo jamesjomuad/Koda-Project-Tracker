@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import type { Project, ProjectPayload, ProjectStatus, ProjectPriority, SortField, SortOrder } from '#shared/types/project';
 import { STATUSES } from '#shared/types/project';
+import type { User } from '#shared/types/user';
 
 export interface ListParams {
   search?: string;
@@ -57,6 +58,7 @@ function saveColumnOrder(order: ProjectStatus[]): void {
 
 export const useProjectsStore = defineStore('projects', () => {
   const projects = ref<Project[]>([]);
+  const users = ref<User[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const columnOrder = ref<ProjectStatus[]>(loadColumnOrder());
@@ -88,6 +90,14 @@ export const useProjectsStore = defineStore('projects', () => {
       error.value = extractApiError(e).message;
     } finally {
       loading.value = false;
+    }
+  }
+
+  async function fetchUsers(): Promise<void> {
+    try {
+      users.value = await $fetch<User[]>('/api/users');
+    } catch (e) {
+      console.error('Failed to fetch users:', extractApiError(e).message);
     }
   }
 
@@ -137,11 +147,13 @@ export const useProjectsStore = defineStore('projects', () => {
 
   return {
     projects,
+    users,
     loading,
     error,
     columns,
     columnOrder,
     fetchProjects,
+    fetchUsers,
     createProject,
     updateProject,
     deleteProject,
@@ -153,3 +165,4 @@ export const useProjectsStore = defineStore('projects', () => {
 
 export { STATUSES, PRIORITIES } from '#shared/types/project';
 export type { Project, ProjectPayload, ProjectStatus, ProjectPriority, SortField, SortOrder } from '#shared/types/project';
+export type { User } from '#shared/types/user';

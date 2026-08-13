@@ -1,9 +1,9 @@
 import { deleteProject } from '../../utils/projects.repository';
 import { parseIdParam } from '../../utils/params';
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const id = parseIdParam(getRouterParam(event, 'id'));
-  deleteProject(id);
+  await deleteProject(id);
   setResponseStatus(event, 204);
   return null;
 });

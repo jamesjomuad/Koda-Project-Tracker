@@ -1,12 +1,31 @@
 <script setup lang="ts">
 import type { Project } from '#shared/types/project';
+import type { User } from '#shared/types/user';
 
-const props = defineProps<{ project: Project }>();
+const props = defineProps<{
+  project: Project;
+  users?: User[];
+}>();
 
 const emit = defineEmits<{
   edit: [project: Project];
   delete: [project: Project];
 }>();
+
+const assignedUser = computed(() => {
+  if (!props.project.assignedTo || !props.users) return null;
+  return props.users.find((u) => u.id === props.project.assignedTo) ?? null;
+});
+
+const initials = computed(() => {
+  if (!assignedUser.value) return '';
+  return assignedUser.value.name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+});
 
 function formatDate(dateStr: string): string {
   const [y = 0, m = 0, d = 0] = dateStr.split('-').map(Number);
@@ -51,6 +70,9 @@ const dueInfo = computed(() => {
     <p class="card-client">{{ props.project.clientName }}</p>
     <div class="card-footer">
       <ProjectPriorityBadge :priority="props.project.priority" />
+      <span v-if="assignedUser" class="card-assignee" :title="assignedUser.name">
+        <span class="avatar-initials">{{ initials }}</span>
+      </span>
       <span
         class="card-due"
         :class="`card-due-${dueInfo.kind}`"

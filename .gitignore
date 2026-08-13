@@ -26,3 +26,9 @@ Thumbs.db
 .vscode/
 .nuxt/
 .output/
+.agents/
+.claude/
+.windsurf/
+.playwright-cli/
+
+/app/generated/prisma

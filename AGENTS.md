@@ -4,13 +4,12 @@
 
 - **Nuxt 4.5.2** (Vue 3.5, TypeScript, server-rendered)
 - **Nuxt UI v4.10** — Tailwind CSS v4, Lucide icons (`@iconify-json/lucide`)
-- **better-sqlite3** — local SQLite DB at `data/projects.db`
+- **Prisma 7.9.1** — ORM with `@prisma/adapter-better-sqlite3` driver adapter
 - **zod v4** — shared validation (server + client via `#shared` alias)
 - **Package manager:** npm
 - **Testing:** Vitest (unit + e2e via `@nuxt/test-utils`)
 - **vue-draggable-plus** — SortableJS-based, used for kanban DnD
 - **Pinia** — project state management (`app/stores/projects.ts`)
-- **No external database**
 
 ## Directory Structure
 
@@ -18,6 +17,13 @@
 app/                          # Nuxt 4 app directory (frontend)
   assets/css/main.css         # Global styles, CSS custom properties
   components/                 # 8 components (flat, no nesting)
+    KanbanBoard.vue           # Horizontal draggable columns wrapper
+    KanbanCard.vue            # Project card for kanban (with user avatar)
+    KanbanColumn.vue          # Column with draggable cards + quick-add
+    ConfirmDialog.vue         # Reusable confirmation modal
+    ProjectForm.vue           # Create/edit form with user dropdown
+    ProjectPriorityBadge.vue  # Color-coded priority badge
+    ProjectStatusBadge.vue    # Color-coded status badge
   composables/                # useAuth.ts
   layouts/default.vue         # App shell: header, nav, footer
   middleware/auth.global.ts   # Route guard — redirects to /login
@@ -28,21 +34,27 @@ app/                          # Nuxt 4 app directory (frontend)
     projects/new.vue          # Create project form
     projects/[id]/edit.vue    # Edit project form
   stores/
-    projects.ts               # Pinia store — all project + kanban state
+    projects.ts               # Pinia store — all project + kanban + user state
+prisma/
+  schema.prisma               # Prisma schema (User + Project models)
+  seed.ts                     # Standalone seed script (npx tsx prisma/seed.ts)
 server/                       # Nitro backend
   api/auth/                   # login.post, logout.post, session.get
   api/projects/               # Full CRUD: index.get/post, [id].get/put/delete
-  plugins/db.ts               # Opens DB, auto-seeds if empty
+  api/users/                  # Full CRUD: index.get/post, [id].get/put/delete
+  plugins/db.ts               # Auto-seeds users + projects if DB empty
   utils/
     auth.ts                   # HMAC-signed session cookies (12h TTL)
-    db.ts                     # SQLite connection, schema DDL
+    db.ts                     # Prisma client singleton (PrismaBetterSqlite3)
     error-handler.ts          # Global Nitro error handler (JSON envelope)
     errors.ts                 # Typed error factories (badRequest, notFound, etc.)
     params.ts                 # parseIdParam, coerceQuery helpers
-    projects.repository.ts    # SQL queries — list, get, create, update, delete, seed
+    projects.repository.ts    # Prisma queries — async list, get, create, update, delete
+    users.repository.ts       # Prisma queries — async list, get, create, update, delete
     validation.ts             # Zod schemas for payload + list query
 shared/                       # Shared between client & server (#shared alias)
   types/project.ts            # Project, ProjectPayload, enums, sort types
+  types/user.ts               # User, UserPayload, UserRole
   data/seed-data.ts           # 12 sample projects for auto-seeding
 tests/
   validation.test.ts          # Unit tests for Zod schemas
@@ -52,42 +64,36 @@ tests/
 ## Conventions
 
 - **Component organization:** flat `components/` folder, PascalCase filenames, no prefix (auto-imported by Nuxt)
-- **Naming:** `ProjectForm.vue`, `ProjectStatusBadge.vue`, `ConfirmDialog.vue`, `KanbanCard.vue`, `KanbanColumn.vue`, `KanbanBoard.vue`
 - **Styling:** mix of Nuxt UI components (`UCard`, `UButton`, `UForm`, `UModal`, etc.) + scoped `<style>` with CSS custom properties from `main.css`
-- **No atomic design** — simple feature-oriented flat structure
 - **TypeScript everywhere** — strict mode, `nuxt typecheck` available
 - **`#shared` alias** — types and seed data imported as `#shared/types/project` from both client and server
+- **Prisma queries are async** — all repository functions return Promises, all API endpoints use `async/await`
 
 ## State Management
 
-- **Pinia** — `app/stores/projects.ts` holds all project + kanban state (projects list, loading, error, columns, column order)
+- **Pinia** — `app/stores/projects.ts` holds all project + kanban + user state (projects, users, loading, error, columns, column order)
 - `useAuth()` — uses `useState('auth.user')` for cross-request state; fetches session from `/api/auth/session` on boot
-- `useProjects()` removed — replaced by `useProjectsStore()` from Pinia
-- **No URL query param sync** — filter/sort state lives in local refs in `index.vue`. A debounced `watch` triggers `fetchProjects()` on change. State is not persisted to the URL.
-
-## Key Features Status
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Project CRUD | Done | Full create/read/update/delete with validation |
-| List with search/filter/sort | Done | Debounced search, status/priority filters, multi-field sort |
-| Dashboard stats | Done | Total, in-progress, completed, overdue counts |
-| Authentication | Done | HMAC cookie session, global middleware, demo credentials (admin/admin123) |
-| Validation | Done | Zod schemas with field-level errors, shared client/server |
-| Error handling | Done | Global Nitro handler, JSON envelope, client-side `extractApiError()` |
-| Seed data | Done | 12 projects auto-seeded on first run |
-| Tests | Done | Unit (validation) + e2e (full API) |
-| **Kanban board** | Done | 4 columns by status, DnD card reorder, inline add/edit/delete, column reorder via localStorage |
-| **Pinia store** | Done | Centralized project + kanban state in `app/stores/projects.ts` |
-| **URL query sync** | Not present | Filters are local refs only |
 
 ## Data Layer
 
-- **SQLite** via `better-sqlite3` — file at `data/projects.db`
-- **Schema:** single `projects` table (id, clientName, projectName, description, status, priority, startDate, dueDate, createdAt, updatedAt)
-- **Repository pattern:** `server/utils/projects.repository.ts` wraps all SQL
-- **Auto-seeding:** Nitro plugin seeds 12 projects from `shared/data/seed-data.ts` on startup if DB is empty
-- **DB_PATH env var** overrides the default file path (used in tests for temp DB)
+- **Prisma 7.9.1** with `@prisma/adapter-better-sqlite3` driver adapter
+- **SQLite** database at `data/projects.db`
+- **Schema:** `prisma/schema.prisma` with User and Project models (relation: Project.assignedTo → User.id)
+- **Client singleton:** `server/utils/db.ts` exports `getPrisma()` using `PrismaBetterSqlite3` adapter
+- **Repository pattern:** `server/utils/projects.repository.ts` and `server/utils/users.repository.ts` wrap all Prisma queries
+- **Auto-seeding:** Nitro plugin seeds 5 users + 12 projects on startup if DB is empty
+- **DATABASE_URL env var** — `file:../data/projects.db` (relative to prisma/ dir); overridden in tests
+- **Prisma config:** `prisma.config.ts` at project root (URL from `DATABASE_URL` env var, NOT in schema)
+- **Generator:** `provider = "prisma-client-js"` (standard, outputs to node_modules)
+
+## Prisma Setup Notes
+
+- Schema uses `provider = "sqlite"` in datasource block — NO `url` field (URL goes in `prisma.config.ts`)
+- All timestamps stored as ISO 8601 strings by default via driver adapter
+- `PrismaBetterSqlite3` (lowercase 'l') is the correct adapter class name
+- `npx prisma generate` must be run after schema changes
+- `npx prisma db push --accept-data-loss` to sync schema to DB
+- AI detection in Prisma v7: `prisma db push` may block in CI; use `$executeRawUnsafe` in tests instead
 
 ## Key Interfaces (`shared/types/project.ts`)
 
@@ -99,23 +105,21 @@ type SortField = 'clientName' | 'projectName' | 'status' | 'priority' | 'startDa
 interface ProjectPayload {
   clientName: string; projectName: string; description?: string;
   status: ProjectStatus; priority: ProjectPriority;
-  startDate: string; dueDate: string;
+  startDate: string; dueDate: string; assignedTo?: number | null;
 }
 
 interface Project extends ProjectPayload {
-  id: number; description: string; createdAt: string; updatedAt: string;
+  id: number; description: string; assignedTo: number | null;
+  createdAt: string; updatedAt: string;
 }
 ```
 
 ## Known Issues / Rough Edges
 
-- **console.log in db plugin** (`server/plugins/db.ts:11`) — seed log left in production code
-- **console.error in error-handler** (`server/utils/error-handler.ts:27`) — expected for server errors, but no logging abstraction
-- **No TODO/FIXME comments** — codebase is clean
+- **Prisma deprecation warning** — `@prisma/client` exports field trailing slash pattern in ESM
 - **Filter state not in URL** — refreshing the page resets search/filter/sort to defaults
-- **No Pinia** — if state management grows (kanban, multi-entity), will need introduction
-- **No components.json** — Nuxt UI is not configured with a custom theme file; theming is via CSS custom properties in `main.css`
 - **Hardcoded demo credentials** — assessment context, not production-ready auth
+- **No components.json** — theming via CSS custom properties in `main.css`
 
 ## Commands
 
@@ -126,6 +130,9 @@ npm run preview      # Serve production build (after build)
 npm run test         # Unit tests + e2e API tests
 npm run test:watch   # Vitest in watch mode
 npm run typecheck    # TypeScript + Vue type checking
+npm run db:push      # Push Prisma schema to SQLite DB
+npm run db:seed      # Run seed script (5 users + 12 projects)
+npm run db:reset     # Force reset DB + re-seed
 ```
 
 ## Auth Notes

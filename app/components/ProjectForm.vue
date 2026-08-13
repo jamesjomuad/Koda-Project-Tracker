@@ -2,6 +2,7 @@
 import { STATUSES, PRIORITIES, useProjectsStore } from '../stores/projects';
 import { extractApiError } from '../stores/projects';
 import type { ProjectPayload, Project } from '#shared/types/project';
+import type { User } from '#shared/types/user';
 
 const props = withDefaults(defineProps<{
   mode: 'create' | 'edit';
@@ -16,6 +17,7 @@ const emit = defineEmits<{
 }>();
 
 const router = useRouter();
+const store = useProjectsStore();
 
 const form = reactive<ProjectPayload>({
   clientName: props.initial?.clientName ?? '',
@@ -25,11 +27,21 @@ const form = reactive<ProjectPayload>({
   priority: props.initial?.priority ?? 'Medium',
   startDate: props.initial?.startDate ?? '',
   dueDate: props.initial?.dueDate ?? '',
+  assignedTo: props.initial?.assignedTo ?? null,
 });
 
 const fieldErrors = ref<Record<string, string>>({});
 const formError = ref<string | null>(null);
 const submitting = ref(false);
+
+const userItems = computed(() => [
+  { label: 'Unassigned', value: null },
+  ...store.users.map((u) => ({ label: u.name, value: u.id })),
+]);
+
+onMounted(() => {
+  if (store.users.length === 0) store.fetchUsers();
+});
 
 function clearErrors(): void {
   fieldErrors.value = {};
@@ -40,7 +52,6 @@ async function onSubmit(): Promise<void> {
   clearErrors();
   submitting.value = true;
   try {
-    const store = useProjectsStore();
     const project = props.mode === 'create'
       ? await store.createProject(form)
       : await store.updateProject(props.initial!.id, form);
@@ -138,6 +149,16 @@ async function onSubmit(): Promise<void> {
         />
       </UFormField>
     </div>
+
+    <UFormField label="Assigned To">
+      <USelect
+        v-model="form.assignedTo"
+        name="assignedTo"
+        :items="userItems"
+        value-key="value"
+        class="w-full"
+      />
+    </UFormField>
 
     <div class="form-actions">
       <UButton color="neutral" variant="outline" :disabled="submitting" @click="emit('cancel')">
