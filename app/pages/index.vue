@@ -2,10 +2,31 @@
 import { STATUSES } from '#shared/types/project';
 import type { Project, ProjectStatus } from '#shared/types/project';
 import { useWorkspacesStore } from '../stores/workspaces';
+import type { WorkspaceListItem } from '../stores/workspaces';
 
 useSeoMeta({ title: 'Workspaces · Koda Project Tracker' });
 
 const store = useWorkspacesStore();
+
+const editModalOpen = ref(false);
+const editing = ref<WorkspaceListItem | null>(null);
+
+function openEdit(w: WorkspaceListItem): void {
+  editing.value = { ...w };
+  editModalOpen.value = true;
+}
+
+function onSubmitted(): void {
+  editModalOpen.value = false;
+  editing.value = null;
+  store.fetchWorkspaces();
+  loadAllProjects();
+}
+
+function onCancel(): void {
+  editModalOpen.value = false;
+  editing.value = null;
+}
 
 /** Unscoped project list used to derive per-workspace status breakdowns. */
 const allProjects = ref<Project[]>([]);
@@ -133,11 +154,22 @@ onMounted(() => {
           <p class="ws-desc">{{ w.description }}</p>
           <div class="ws-meta">
             <span class="ws-count">{{ w.projectCount }} project{{ w.projectCount === 1 ? '' : 's' }}</span>
-            <span class="ws-open" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
+            <span class="ws-actions">
+              <UButton
+                icon="i-lucide-pencil"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                :aria-label="`Edit ${w.name}`"
+                title="Edit workspace"
+                @click.stop="openEdit(w)"
+              />
+              <span class="ws-open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </span>
             </span>
           </div>
           <div
@@ -163,6 +195,18 @@ onMounted(() => {
         </div>
       </li>
     </ul>
+
+    <UModal v-model:open="editModalOpen" :title="editing ? `Edit ${editing.name}` : 'Edit Workspace'" :dismissible="true">
+      <template #body>
+        <WorkspaceForm
+          v-if="editing"
+          mode="edit"
+          :initial="editing"
+          @submitted="onSubmitted"
+          @cancel="onCancel"
+        />
+      </template>
+    </UModal>
   </section>
 </template>
 
@@ -311,6 +355,19 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.ws-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.workspace-card:hover .ws-actions,
+.workspace-card:focus-visible .ws-actions {
+  opacity: 1;
 }
 
 .ws-count {

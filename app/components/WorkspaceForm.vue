@@ -31,7 +31,11 @@ const form = reactive<WorkspacePayload>({
   description: props.initial?.description ?? '',
 });
 
-let slugDirty = props.mode === 'edit';
+let slugDirty = false;
+
+function markSlugDirty(): void {
+  slugDirty = true;
+}
 
 watch(() => form.name, (val) => {
   if (!slugDirty) form.slug = slugify(val);
@@ -89,7 +93,7 @@ async function onSubmit(): Promise<void> {
         v-model="form.slug"
         name="slug"
         placeholder="e.g. design-studio"
-        @update:model-value="slugDirty = true"
+        @update:model-value="markSlugDirty"
         class="w-full"
       />
       <p class="field-hint">Used in the URL, e.g. /design-studio/projects</p>
