@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useProjectsStore } from '../stores/projects';
+import { useWorkspacesStore } from '../stores/workspaces';
 
 const { user, logout } = useAuth();
 const route = useRoute();
-const store = useProjectsStore();
+const store = useWorkspacesStore();
 const isLogin = computed(() => route.path === '/login');
 
 const workspaceItems = computed(() => [
@@ -11,9 +11,27 @@ const workspaceItems = computed(() => [
   ...store.workspaces.map((w) => ({ label: w.name, value: w.id })),
 ]);
 
+const activeWorkspace = computed(
+  () => store.workspaces.find((w) => w.id === store.activeWorkspaceId) ?? null,
+);
+
+const projectsHref = computed(
+  () => (activeWorkspace.value ? `/${activeWorkspace.value.slug}/projects` : '/'),
+);
+
+const boardHref = computed(
+  () => (activeWorkspace.value ? `/${activeWorkspace.value.slug}/kanban` : '/'),
+);
+
 async function onLogout(): Promise<void> {
   await logout();
   await navigateTo('/login');
+}
+
+async function onWorkspaceSelect(id: number | null): Promise<void> {
+  if (store.activeWorkspaceId !== id) store.setActiveWorkspace(id);
+  const target = id === null ? '/' : `/${store.workspaces.find((w) => w.id === id)?.slug ?? ''}/projects`;
+  if (route.path !== target) await navigateTo(target);
 }
 
 onMounted(() => {
@@ -30,17 +48,19 @@ onMounted(() => {
           <span class="brand-name">Koda Project Tracker</span>
         </NuxtLink>
         <nav v-if="!isLogin" class="nav">
-          <NuxtLink to="/" class="nav-link">Projects</NuxtLink>
-          <NuxtLink to="/kanban" class="nav-link">Board</NuxtLink>
-          <NuxtLink to="/workspaces" class="nav-link">Workspaces</NuxtLink>
-          <USelect
+          <NuxtLink :to="projectsHref" class="nav-link">Projects</NuxtLink>
+          <NuxtLink :to="boardHref" class="nav-link">Board</NuxtLink>
+          <USelectMenu
             v-if="store.workspaces.length > 0"
             :model-value="store.activeWorkspaceId"
             :items="workspaceItems"
             value-key="value"
+            leading-icon="i-lucide-search"
+            :search-input="{ placeholder: 'Search workspaces…' }"
+            placeholder="Search workspace"
+            aria-label="Search and select workspace"
             class="workspace-switcher"
-            aria-label="Select workspace"
-            @update:model-value="(id: number | null) => store.setActiveWorkspace(id)"
+            @update:model-value="(id: number | null) => onWorkspaceSelect(id)"
           />
           <UButton to="/projects/new" icon="i-lucide-plus" color="primary">New Project</UButton>
           <span v-if="user" class="nav-user" :title="`Signed in as ${user.username}`">
@@ -144,14 +164,14 @@ onMounted(() => {
 }
 
 .workspace-switcher {
-  min-width: 170px;
-  max-width: 220px;
+  min-width: 210px;
+  max-width: 260px;
 }
 
 @media (max-width: 900px) {
   .workspace-switcher {
-    min-width: 140px;
-    max-width: 160px;
+    min-width: 150px;
+    max-width: 170px;
   }
 }
 

@@ -31,7 +31,7 @@ async function main() {
   if (workspaceCount === 0) {
     for (const w of SEED_WORKSPACES) {
       await prisma.workspace.create({
-        data: { name: w.name, description: w.description ?? '' },
+        data: { name: w.name, slug: w.slug, description: w.description ?? '' },
       });
     }
     console.log(`[seed] created ${SEED_WORKSPACES.length} workspaces`);

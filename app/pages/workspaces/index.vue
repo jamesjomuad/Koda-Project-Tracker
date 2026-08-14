@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { useProjectsStore, extractApiError } from '../../stores/projects';
+import { useWorkspacesStore } from '../../stores/workspaces';
+import { extractApiError } from '~/utils/api';
 import type { Workspace } from '#shared/types/workspace';
-import type { WorkspaceListItem } from '../../stores/projects';
+import type { WorkspaceListItem } from '../../stores/workspaces';
 
 useSeoMeta({ title: 'Workspaces · Koda Project Tracker' });
 
-const store = useProjectsStore();
+const route = useRoute();
+const store = useWorkspacesStore();
 
 const workspaces = ref<WorkspaceListItem[]>([]);
 const loading = ref(false);
@@ -92,6 +94,7 @@ watch(showDeleted, load);
 onMounted(() => {
   load();
   if (store.workspaces.length === 0) store.fetchWorkspaces();
+  if (route.query.new) openCreate();
 });
 </script>
 
@@ -158,7 +161,14 @@ onMounted(() => {
           <div class="card-top">
             <div>
               <h3 class="workspace-name">
-                {{ workspace.name }}
+                <NuxtLink
+                  v-if="!workspace.deletedAt"
+                  :to="`/${workspace.slug}/projects`"
+                  class="workspace-link"
+                >
+                  {{ workspace.name }}
+                </NuxtLink>
+                <template v-else>{{ workspace.name }}</template>
                 <UBadge v-if="workspace.deletedAt" color="error" variant="subtle" size="sm">
                   Deleted
                 </UBadge>
@@ -296,6 +306,15 @@ onMounted(() => {
 .workspace-name {
   margin: 0;
   font-size: 1.05rem;
+}
+
+.workspace-link {
+  color: var(--color-text);
+}
+
+.workspace-link:hover {
+  color: var(--color-primary);
+  text-decoration: none;
 }
 
 .description {

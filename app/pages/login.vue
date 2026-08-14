@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { extractApiError } from '../stores/projects';
+import { extractApiError } from '../utils/api';
 
 useSeoMeta({ title: 'Login · Koda Project Tracker' });
 

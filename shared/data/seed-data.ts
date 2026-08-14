@@ -2,9 +2,9 @@ import type { ProjectPayload } from '../types/project';
 import type { WorkspacePayload } from '../types/workspace';
 
 export const SEED_WORKSPACES: WorkspacePayload[] = [
-  { name: 'Design Studio', description: 'Client websites, apps, and creative work.' },
-  { name: 'Growth & Marketing', description: 'Campaigns, dashboards, and go-to-market projects.' },
-  { name: 'Operations & Platform', description: 'Internal systems, platforms, and tooling.' },
+  { name: 'Design Studio', slug: 'design-studio', description: 'Client websites, apps, and creative work.' },
+  { name: 'Growth & Marketing', slug: 'growth-marketing', description: 'Campaigns, dashboards, and go-to-market projects.' },
+  { name: 'Operations & Platform', slug: 'operations-platform', description: 'Internal systems, platforms, and tooling.' },
 ];
 
 export const SEED_PROJECTS: ProjectPayload[] = [

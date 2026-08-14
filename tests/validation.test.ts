@@ -161,28 +161,53 @@ describe('parseListQuery', () => {
 
 describe('parseWorkspacePayload', () => {
   it('accepts a valid payload and defaults description', () => {
-    const result = parseWorkspacePayload({ name: 'Design Studio' });
-    expect(result).toMatchObject({ name: 'Design Studio', description: '' });
+    const result = parseWorkspacePayload({ name: 'Design Studio', slug: 'design-studio' });
+    expect(result).toMatchObject({ name: 'Design Studio', slug: 'design-studio', description: '' });
   });
 
-  it('trims whitespace from the name', () => {
-    expect(parseWorkspacePayload({ name: '  Ops  ' }).name).toBe('Ops');
+  it('trims whitespace from the name and slug', () => {
+    const result = parseWorkspacePayload({ name: '  Ops  ', slug: '  ops  ' });
+    expect(result.name).toBe('Ops');
+    expect(result.slug).toBe('ops');
+  });
+
+  it('lowercases and trims the slug', () => {
+    const result = parseWorkspacePayload({ name: 'Ops', slug: '  OPS-Team  ' });
+    expect(result.slug).toBe('ops-team');
   });
 
   it('rejects missing name', () => {
-    expectValidationIssues(() => parseWorkspacePayload({}), [
+    expectValidationIssues(() => parseWorkspacePayload({ slug: 'ops' }), [
       { field: 'name', message: 'Workspace name is required' },
     ]);
   });
 
+  it('rejects missing slug', () => {
+    expectValidationIssues(() => parseWorkspacePayload({ name: 'Ops' }), [
+      { field: 'slug', message: 'Workspace slug is required' },
+    ]);
+  });
+
+  it('rejects an invalid slug format', () => {
+    expectValidationIssues(() => parseWorkspacePayload({ name: 'Ops', slug: 'Ops_Studio!' }), [
+      { field: 'slug', message: 'Slug must use lowercase letters, numbers, and hyphens (e.g. design-studio)' },
+    ]);
+  });
+
   it('rejects an over-long name', () => {
-    expectValidationIssues(() => parseWorkspacePayload({ name: 'x'.repeat(121) }), [
+    expectValidationIssues(() => parseWorkspacePayload({ name: 'x'.repeat(121), slug: 'ops' }), [
       { field: 'name', message: 'Workspace name must be 120 characters or fewer' },
     ]);
   });
 
+  it('rejects an over-long slug', () => {
+    expectValidationIssues(() => parseWorkspacePayload({ name: 'Ops', slug: 'a'.repeat(81) }), [
+      { field: 'slug', message: 'Slug must be 80 characters or fewer' },
+    ]);
+  });
+
   it('rejects an over-long description', () => {
-    expectValidationIssues(() => parseWorkspacePayload({ name: 'A', description: 'x'.repeat(2001) }), [
+    expectValidationIssues(() => parseWorkspacePayload({ name: 'A', slug: 'ops', description: 'x'.repeat(2001) }), [
       { field: 'description', message: 'Description must be 2000 characters or fewer' },
     ]);
   });

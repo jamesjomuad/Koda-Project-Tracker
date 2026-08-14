@@ -9,32 +9,39 @@
 - **Package manager:** npm
 - **Testing:** Vitest (unit + e2e via `@nuxt/test-utils`)
 - **vue-draggable-plus** — SortableJS-based, used for kanban DnD
-- **Pinia** — project state management (`app/stores/projects.ts`)
+- **Pinia** — project state split across three stores: `app/stores/projects.ts` (projects, loading, error, kanban columns/order), `app/stores/workspaces.ts` (workspaces, activeWorkspaceId, localStorage persistence), `app/stores/users.ts` (users)
 
 ## Directory Structure
 
 ```
 app/                          # Nuxt 4 app directory (frontend)
   assets/css/main.css         # Global styles, CSS custom properties
-  components/                 # 8 components (flat, no nesting)
+  components/                 # 10 components (flat, no nesting)
     KanbanBoard.vue           # Horizontal draggable columns wrapper
     KanbanCard.vue            # Project card for kanban (with user avatar)
     KanbanColumn.vue          # Column with draggable cards + quick-add
     ConfirmDialog.vue         # Reusable confirmation modal
-    ProjectForm.vue           # Create/edit form with user dropdown
+    ProjectForm.vue           # Create/edit form with workspace + user dropdowns
     ProjectPriorityBadge.vue  # Color-coded priority badge
     ProjectStatusBadge.vue    # Color-coded status badge
-  composables/                # useAuth.ts
-  layouts/default.vue         # App shell: header, nav, footer
+    WorkspaceForm.vue         # Create/edit workspace form (name, slug, description)
+  composables/                # useAuth.ts, usePersistedRef.ts
+  layouts/default.vue         # App shell: header (workspace switcher), nav, footer
   middleware/auth.global.ts   # Route guard — redirects to /login
   pages/
-    index.vue                 # Dashboard — project list with search/filter/sort
-    kanban.vue                # Kanban board view
+    index.vue                 # Workspace landing — cards link to /{workspace}/projects
     login.vue                 # Login form
     projects/new.vue          # Create project form
     projects/[id]/edit.vue    # Edit project form
+    workspaces/index.vue      # Workspace management (CRUD, restore, /?new=1 auto-open)
+    [workspace]/projects.vue  # Projects dashboard scoped to workspace slug
+    [workspace]/kanban.vue    # Kanban board scoped to workspace slug
   stores/
-    projects.ts               # Pinia store — all project + kanban + user state
+    projects.ts               # Pinia store — projects, loading, error, kanban columns/order
+    workspaces.ts             # Pinia store — workspaces, activeWorkspaceId (localStorage)
+    users.ts                  # Pinia store — users
+  utils/
+    api.ts                    # extractApiError / ApiErrorShape shared helper
 prisma/
   schema.prisma               # Prisma schema (User + Project models)
   seed.ts                     # Standalone seed script (npx tsx prisma/seed.ts)
@@ -71,14 +78,16 @@ tests/
 
 ## State Management
 
-- **Pinia** — `app/stores/projects.ts` holds all project + kanban + user state (projects, users, loading, error, columns, column order)
+- **Pinia** — three focused stores: `app/stores/projects.ts` (projects, loading, error, columns, column order), `app/stores/workspaces.ts` (workspaces, activeWorkspaceId persisted to localStorage), `app/stores/users.ts` (users)
+- `usePersistedRef()` — composable in `app/composables/usePersistedRef.ts` for localStorage-persisted refs (used for kanban column order + active workspace)
+- `extractApiError()` — shared helper in `app/utils/api.ts` (import as `~/utils/api`)
 - `useAuth()` — uses `useState('auth.user')` for cross-request state; fetches session from `/api/auth/session` on boot
 
 ## Data Layer
 
 - **Prisma 7.9.1** with `@prisma/adapter-better-sqlite3` driver adapter
 - **SQLite** database at `data/projects.db`
-- **Schema:** `prisma/schema.prisma` with User and Project models (relation: Project.assignedTo → User.id)
+- **Schema:** `prisma/schema.prisma` with User, Workspace (soft-delete via `deletedAt`), and Project models (relations: Project.workspaceId → Workspace.id, Project.assignedTo → User.id)
 - **Client singleton:** `server/utils/db.ts` exports `getPrisma()` using `PrismaBetterSqlite3` adapter
 - **Repository pattern:** `server/utils/projects.repository.ts` and `server/utils/users.repository.ts` wrap all Prisma queries
 - **Auto-seeding:** Nitro plugin seeds 5 users + 12 projects on startup if DB is empty

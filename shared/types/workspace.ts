@@ -1,5 +1,6 @@
 export interface WorkspacePayload {
   name: string;
+  slug: string;
   description?: string;
 }
 

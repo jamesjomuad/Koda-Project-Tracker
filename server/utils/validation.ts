@@ -98,12 +98,21 @@ export function parseListQuery(query: Record<string, string | undefined>): Parse
   return result.data as ParsedListQuery;
 }
 
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 const workspacePayloadSchema = z.object({
   name: z
     .string({ error: 'Workspace name is required' })
     .trim()
     .min(1, 'Workspace name is required')
     .max(120, 'Workspace name must be 120 characters or fewer'),
+  slug: z
+    .string({ error: 'Workspace slug is required' })
+    .trim()
+    .toLowerCase()
+    .min(1, 'Workspace slug is required')
+    .regex(SLUG_RE, 'Slug must use lowercase letters, numbers, and hyphens (e.g. design-studio)')
+    .max(80, 'Slug must be 80 characters or fewer'),
   description: z
     .string()
     .trim()

@@ -24,6 +24,7 @@ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS users (
 await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS workspaces (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
+  slug TEXT NOT NULL UNIQUE,
   description TEXT NOT NULL DEFAULT '',
   deletedAt TEXT,
   createdAt TEXT NOT NULL DEFAULT (datetime('now')),
@@ -292,11 +293,11 @@ describe('POST /api/workspaces', () => {
     const created = await fetch(workspacesBase, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'New Workspace', description: 'A fresh workspace' }),
+      body: JSON.stringify({ name: 'New Workspace', slug: 'new-workspace', description: 'A fresh workspace' }),
     }).then(r => ({ status: r.status, body: r.json() }));
     const body = await created.body;
     expect(created.status).toBe(201);
-    expect(body).toMatchObject({ name: 'New Workspace', description: 'A fresh workspace' });
+    expect(body).toMatchObject({ name: 'New Workspace', slug: 'new-workspace', description: 'A fresh workspace' });
     expect(body.id).toBeGreaterThan(0);
   });
 
@@ -312,6 +313,42 @@ describe('POST /api/workspaces', () => {
     expect(body.error.issues).toEqual(
       expect.arrayContaining([expect.objectContaining({ field: 'name' })]),
     );
+    expect(body.error.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'slug' })]),
+    );
+  });
+
+  it('returns 409 when the slug is already in use', async () => {
+    const res = await fetch(workspacesBase, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'Duplicate', slug: 'design-studio' }),
+    });
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toMatchObject({ code: 'CONFLICT', message: 'A workspace with this slug already exists' });
+  });
+});
+
+describe('GET /api/workspaces/by-slug/:slug', () => {
+  it('returns a workspace by slug', async () => {
+    const workspace = await fetch(`${workspacesBase}/by-slug/design-studio`).then(r => r.json());
+    expect(workspace).toMatchObject({ slug: 'design-studio' });
+    expect(workspace.id).toBeGreaterThan(0);
+  });
+
+  it('returns 404 for an unknown slug', async () => {
+    const res = await fetch(`${workspacesBase}/by-slug/nope-nope`);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toMatchObject({ code: 'NOT_FOUND', message: 'Workspace not found' });
+  });
+
+  it('returns 404 for a soft-deleted workspace', async () => {
+    await fetch(`${workspacesBase}/2`, { method: 'DELETE' });
+    const res = await fetch(`${workspacesBase}/by-slug/growth-marketing`);
+    expect(res.status).toBe(404);
+    await fetch(`${workspacesBase}/2/restore`, { method: 'POST' });
   });
 });
 
@@ -320,11 +357,12 @@ describe('PUT /api/workspaces/:id', () => {
     const updated = await fetch(`${workspacesBase}/2`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Renamed Workspace', description: 'Updated' }),
+      body: JSON.stringify({ name: 'Renamed Workspace', slug: 'renamed-workspace', description: 'Updated' }),
     });
     expect(updated.status).toBe(200);
     const body = await updated.json();
     expect(body.name).toBe('Renamed Workspace');
+    expect(body.slug).toBe('renamed-workspace');
     expect(body.description).toBe('Updated');
   });
 
@@ -332,7 +370,7 @@ describe('PUT /api/workspaces/:id', () => {
     const res = await fetch(`${workspacesBase}/99999`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Nope' }),
+      body: JSON.stringify({ name: 'Nope', slug: 'nope' }),
     });
     expect(res.status).toBe(404);
     const body = await res.json();
@@ -345,7 +383,7 @@ describe('DELETE + restore /api/workspaces/:id', () => {
     const created = await fetch(workspacesBase, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Temp Workspace' }),
+      body: JSON.stringify({ name: 'Temp Workspace', slug: 'temp-workspace' }),
     }).then(r => r.json());
 
     const project = await fetch(base, {

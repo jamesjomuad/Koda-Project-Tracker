@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { STATUSES, PRIORITIES, useProjectsStore } from '../stores/projects';
-import { extractApiError } from '../stores/projects';
+import { STATUSES, PRIORITIES } from '#shared/types/project';
+import { useProjectsStore } from '../stores/projects';
+import { useWorkspacesStore } from '../stores/workspaces';
+import { useUsersStore } from '../stores/users';
+import { extractApiError } from '~/utils/api';
 import type { ProjectPayload, Project } from '#shared/types/project';
 import type { User } from '#shared/types/user';
 
@@ -18,6 +21,8 @@ const emit = defineEmits<{
 
 const router = useRouter();
 const store = useProjectsStore();
+const workspacesStore = useWorkspacesStore();
+const usersStore = useUsersStore();
 
 const form = reactive<ProjectPayload>({
   clientName: props.initial?.clientName ?? '',
@@ -28,7 +33,7 @@ const form = reactive<ProjectPayload>({
   startDate: props.initial?.startDate ?? '',
   dueDate: props.initial?.dueDate ?? '',
   assignedTo: props.initial?.assignedTo ?? null,
-  workspaceId: props.initial?.workspaceId ?? store.activeWorkspaceId ?? store.workspaces[0]?.id ?? 0,
+  workspaceId: props.initial?.workspaceId ?? workspacesStore.activeWorkspaceId ?? workspacesStore.workspaces[0]?.id ?? 0,
 });
 
 const fieldErrors = ref<Record<string, string>>({});
@@ -37,16 +42,21 @@ const submitting = ref(false);
 
 const userItems = computed(() => [
   { label: 'Unassigned', value: null },
-  ...store.users.map((u) => ({ label: u.name, value: u.id })),
+  ...usersStore.users.map((u) => ({ label: u.name, value: u.id })),
 ]);
 
 const workspaceItems = computed(() => [
-  ...store.workspaces.map((w) => ({ label: w.name, value: w.id })),
+  ...workspacesStore.workspaces.map((w) => ({ label: w.name, value: w.id })),
 ]);
 
+const destination = computed(() => {
+  const ws = workspacesStore.workspaces.find((w) => w.id === form.workspaceId);
+  return ws ? `/${ws.slug}/projects` : '/';
+});
+
 onMounted(() => {
-  if (store.users.length === 0) store.fetchUsers();
-  if (store.workspaces.length === 0) store.fetchWorkspaces();
+  if (usersStore.users.length === 0) usersStore.fetchUsers();
+  if (workspacesStore.workspaces.length === 0) workspacesStore.fetchWorkspaces();
 });
 
 function clearErrors(): void {
@@ -62,7 +72,7 @@ async function onSubmit(): Promise<void> {
       ? await store.createProject(form)
       : await store.updateProject(props.initial!.id, form);
     emit('submitted', project);
-    router.push('/');
+    router.push(destination.value);
   } catch (e) {
     const { message, issues } = extractApiError(e);
     formError.value = message;

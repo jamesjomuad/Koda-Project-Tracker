@@ -1,18 +1,20 @@
 import { getPrisma } from './db';
-import { notFound } from './errors';
+import { conflict, notFound } from './errors';
+import type { H3Error } from 'h3';
 import type { Workspace, WorkspacePayload } from '#shared/types/workspace';
 
 const WORKSPACE_SELECT = {
-  id: true, name: true, description: true, deletedAt: true, createdAt: true, updatedAt: true,
+  id: true, name: true, slug: true, description: true, deletedAt: true, createdAt: true, updatedAt: true,
 } as const;
 
 function toWorkspace(row: {
-  id: number; name: string; description: string; deletedAt: Date | null;
+  id: number; name: string; slug: string; description: string; deletedAt: Date | null;
   createdAt: Date; updatedAt: Date;
 }): Workspace {
   return {
     id: row.id,
     name: row.name,
+    slug: row.slug,
     description: row.description,
     deletedAt: row.deletedAt ? row.deletedAt.toISOString() : null,
     createdAt: row.createdAt.toISOString(),
@@ -25,7 +27,7 @@ export interface WorkspaceListItem extends Workspace {
 }
 
 function toWorkspaceListItem(row: {
-  id: number; name: string; description: string; deletedAt: Date | null;
+  id: number; name: string; slug: string; description: string; deletedAt: Date | null;
   createdAt: Date; updatedAt: Date;
   _count: { projects: number };
 }): WorkspaceListItem {
@@ -33,6 +35,14 @@ function toWorkspaceListItem(row: {
     ...toWorkspace(row),
     projectCount: row._count.projects,
   };
+}
+
+function isUniqueError(e: unknown): boolean {
+  return typeof e === 'object' && e !== null && (e as { code?: string }).code === 'P2002';
+}
+
+function slugConflict(): H3Error {
+  return conflict('A workspace with this slug already exists');
 }
 
 export async function listWorkspaces(opts: { includeDeleted?: boolean } = {}): Promise<WorkspaceListItem[]> {
@@ -53,6 +63,14 @@ export async function getWorkspace(id: number): Promise<Workspace> {
   return toWorkspace(workspace);
 }
 
+export async function getWorkspaceBySlug(slug: string): Promise<Workspace | null> {
+  const workspace = await getPrisma().workspace.findFirst({
+    where: { slug, deletedAt: null },
+    select: WORKSPACE_SELECT,
+  });
+  return workspace ? toWorkspace(workspace) : null;
+}
+
 export async function getWorkspaceById(id: number): Promise<Workspace | null> {
   const workspace = await getPrisma().workspace.findUnique({
     where: { id },
@@ -62,14 +80,20 @@ export async function getWorkspaceById(id: number): Promise<Workspace | null> {
 }
 
 export async function createWorkspace(payload: WorkspacePayload): Promise<Workspace> {
-  const workspace = await getPrisma().workspace.create({
-    data: {
-      name: payload.name,
-      description: payload.description ?? '',
-    },
-    select: WORKSPACE_SELECT,
-  });
-  return toWorkspace(workspace);
+  try {
+    const workspace = await getPrisma().workspace.create({
+      data: {
+        name: payload.name,
+        slug: payload.slug,
+        description: payload.description ?? '',
+      },
+      select: WORKSPACE_SELECT,
+    });
+    return toWorkspace(workspace);
+  } catch (e) {
+    if (isUniqueError(e)) throw slugConflict();
+    throw e;
+  }
 }
 
 export async function updateWorkspace(id: number, payload: WorkspacePayload): Promise<Workspace> {
@@ -78,12 +102,14 @@ export async function updateWorkspace(id: number, payload: WorkspacePayload): Pr
       where: { id },
       data: {
         name: payload.name,
+        slug: payload.slug,
         description: payload.description ?? '',
       },
       select: WORKSPACE_SELECT,
     });
     return toWorkspace(workspace);
-  } catch {
+  } catch (e) {
+    if (isUniqueError(e)) throw slugConflict();
     throw notFound('Workspace');
   }
 }
@@ -120,7 +146,7 @@ export async function seedWorkspaces(payloads: WorkspacePayload[]): Promise<numb
   for (const w of payloads) {
     try {
       await getPrisma().workspace.create({
-        data: { name: w.name, description: w.description ?? '' },
+        data: { name: w.name, slug: w.slug, description: w.description ?? '' },
       });
     } catch {
       // skip duplicates

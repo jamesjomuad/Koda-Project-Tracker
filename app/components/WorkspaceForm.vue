@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useProjectsStore, extractApiError } from '../stores/projects';
+import { useWorkspacesStore } from '../stores/workspaces';
+import { extractApiError } from '~/utils/api';
 import type { Workspace, WorkspacePayload } from '#shared/types/workspace';
 
 const props = withDefaults(defineProps<{
@@ -14,11 +15,26 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 
-const store = useProjectsStore();
+const store = useWorkspacesStore();
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 const form = reactive<WorkspacePayload>({
   name: props.initial?.name ?? '',
+  slug: props.initial?.slug ?? '',
   description: props.initial?.description ?? '',
+});
+
+let slugDirty = props.mode === 'edit';
+
+watch(() => form.name, (val) => {
+  if (!slugDirty) form.slug = slugify(val);
 });
 
 const fieldErrors = ref<Record<string, string>>({});
@@ -68,6 +84,17 @@ async function onSubmit(): Promise<void> {
       />
     </UFormField>
 
+    <UFormField label="Slug" required :error="fieldErrors.slug">
+      <UInput
+        v-model="form.slug"
+        name="slug"
+        placeholder="e.g. design-studio"
+        @update:model-value="slugDirty = true"
+        class="w-full"
+      />
+      <p class="field-hint">Used in the URL, e.g. /design-studio/projects</p>
+    </UFormField>
+
     <UFormField label="Description">
       <UTextarea
         v-model="form.description"
@@ -100,5 +127,11 @@ async function onSubmit(): Promise<void> {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
 }
 </style>
