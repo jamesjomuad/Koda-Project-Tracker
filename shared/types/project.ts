@@ -25,6 +25,7 @@ export interface ProjectPayload {
   startDate: string;
   dueDate: string;
   assignedTo?: number | null;
+  workspaceId: number;
 }
 
 export interface Project extends ProjectPayload {
@@ -41,6 +42,7 @@ export interface ListProjectsQuery {
   priority?: ProjectPriority;
   sortBy?: SortField;
   order?: SortOrder;
+  workspaceId?: number;
 }
 
 export interface ValidationIssue {

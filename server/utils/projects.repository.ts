@@ -10,10 +10,10 @@ const STATUS_ORDER: Record<string, number> = { Planning: 1, 'In Progress': 2, 'O
 const PROJECT_SELECT = {
   id: true, clientName: true, projectName: true, description: true,
   status: true, priority: true, startDate: true, dueDate: true,
-  assignedTo: true, createdAt: true, updatedAt: true,
+  assignedTo: true, workspaceId: true, createdAt: true, updatedAt: true,
 } as const;
 
-function toProject(row: { id: number; clientName: string; projectName: string; description: string; status: string; priority: string; startDate: string; dueDate: string; assignedTo: number | null; createdAt: Date; updatedAt: Date }): Project {
+function toProject(row: { id: number; clientName: string; projectName: string; description: string; status: string; priority: string; startDate: string; dueDate: string; assignedTo: number | null; workspaceId: number; createdAt: Date; updatedAt: Date }): Project {
   return {
     id: row.id,
     clientName: row.clientName,
@@ -24,17 +24,27 @@ function toProject(row: { id: number; clientName: string; projectName: string; d
     startDate: row.startDate,
     dueDate: row.dueDate,
     assignedTo: row.assignedTo,
+    workspaceId: row.workspaceId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
+async function assertActiveWorkspace(workspaceId: number): Promise<void> {
+  const workspace = await getPrisma().workspace.findFirst({
+    where: { id: workspaceId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!workspace) throw notFound('Workspace');
+}
+
 export async function listProjects(query: ParsedListQuery): Promise<Project[]> {
   const prisma = getPrisma();
-  const where: Prisma.ProjectWhereInput = {};
+  const where: Prisma.ProjectWhereInput = { workspace: { deletedAt: null } };
 
   if (query.status) where.status = query.status;
   if (query.priority) where.priority = query.priority;
+  if (query.workspaceId) where.workspaceId = query.workspaceId;
   if (query.search) {
     where.OR = [
       { clientName: { contains: query.search } },
@@ -75,13 +85,17 @@ export async function listProjects(query: ParsedListQuery): Promise<Project[]> {
 
 export async function getProject(id: number): Promise<Project> {
   const prisma = getPrisma();
-  const project = await prisma.project.findUnique({ where: { id }, select: PROJECT_SELECT });
+  const project = await prisma.project.findFirst({
+    where: { id, workspace: { deletedAt: null } },
+    select: PROJECT_SELECT,
+  });
   if (!project) throw notFound('Project');
   return toProject(project);
 }
 
 export async function createProject(payload: ProjectPayload): Promise<Project> {
   const prisma = getPrisma();
+  await assertActiveWorkspace(payload.workspaceId);
   const project = await prisma.project.create({
     data: {
       clientName: payload.clientName,
@@ -92,6 +106,7 @@ export async function createProject(payload: ProjectPayload): Promise<Project> {
       startDate: payload.startDate,
       dueDate: payload.dueDate,
       assignedTo: payload.assignedTo ?? null,
+      workspaceId: payload.workspaceId,
     },
     select: PROJECT_SELECT,
   });
@@ -100,6 +115,7 @@ export async function createProject(payload: ProjectPayload): Promise<Project> {
 
 export async function updateProject(id: number, payload: ProjectPayload): Promise<Project> {
   const prisma = getPrisma();
+  await assertActiveWorkspace(payload.workspaceId);
   try {
     const project = await prisma.project.update({
       where: { id },
@@ -112,6 +128,7 @@ export async function updateProject(id: number, payload: ProjectPayload): Promis
         startDate: payload.startDate,
         dueDate: payload.dueDate,
         assignedTo: payload.assignedTo ?? null,
+        workspaceId: payload.workspaceId,
       },
       select: PROJECT_SELECT,
     });
@@ -147,6 +164,7 @@ export async function seedProjects(payloads: ProjectPayload[]): Promise<number> 
         startDate: p.startDate,
         dueDate: p.dueDate,
         assignedTo: p.assignedTo ?? null,
+        workspaceId: p.workspaceId,
       },
     });
   }

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import type { Project, ProjectPayload, ProjectStatus, ProjectPriority, SortField, SortOrder } from '#shared/types/project';
 import { STATUSES } from '#shared/types/project';
 import type { User } from '#shared/types/user';
+import type { Workspace, WorkspacePayload } from '#shared/types/workspace';
 
 export interface ListParams {
   search?: string;
@@ -9,6 +10,11 @@ export interface ListParams {
   priority?: ProjectPriority | undefined;
   sortBy?: SortField;
   order?: SortOrder;
+  workspaceId?: number | undefined;
+}
+
+export interface WorkspaceListItem extends Workspace {
+  projectCount: number;
 }
 
 export interface KanbanColumn {
@@ -35,6 +41,7 @@ export function extractApiError(error: unknown): { message: string; issues: Reco
 }
 
 const COLUMN_ORDER_KEY = 'kanban-column-order';
+const ACTIVE_WORKSPACE_KEY = 'active-workspace-id';
 
 function loadColumnOrder(): ProjectStatus[] {
   if (import.meta.client) {
@@ -56,12 +63,34 @@ function saveColumnOrder(order: ProjectStatus[]): void {
   }
 }
 
+function loadActiveWorkspaceId(): number | null {
+  if (import.meta.client) {
+    try {
+      const raw = localStorage.getItem(ACTIVE_WORKSPACE_KEY);
+      if (raw) {
+        const id = Number(raw);
+        if (Number.isInteger(id) && id > 0) return id;
+      }
+    } catch { /* ignore */ }
+  }
+  return null;
+}
+
+function saveActiveWorkspaceId(id: number | null): void {
+  if (import.meta.client) {
+    if (id === null) localStorage.removeItem(ACTIVE_WORKSPACE_KEY);
+    else localStorage.setItem(ACTIVE_WORKSPACE_KEY, String(id));
+  }
+}
+
 export const useProjectsStore = defineStore('projects', () => {
   const projects = ref<Project[]>([]);
   const users = ref<User[]>([]);
+  const workspaces = ref<WorkspaceListItem[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const columnOrder = ref<ProjectStatus[]>(loadColumnOrder());
+  const activeWorkspaceId = ref<number | null>(loadActiveWorkspaceId());
 
   const columns = computed<KanbanColumn[]>(() =>
     columnOrder.value.map((status) => ({
@@ -82,6 +111,7 @@ export const useProjectsStore = defineStore('projects', () => {
           ...(params.search ? { search: params.search } : {}),
           ...(params.status ? { status: params.status } : {}),
           ...(params.priority ? { priority: params.priority } : {}),
+          ...(params.workspaceId ? { workspaceId: params.workspaceId } : {}),
           ...(params.sortBy ? { sortBy: params.sortBy } : {}),
           ...(params.order ? { order: params.order } : {}),
         },
@@ -91,6 +121,42 @@ export const useProjectsStore = defineStore('projects', () => {
     } finally {
       loading.value = false;
     }
+  }
+
+  async function fetchWorkspaces(): Promise<void> {
+    try {
+      workspaces.value = await $fetch<WorkspaceListItem[]>('/api/workspaces');
+    } catch (e) {
+      console.error('Failed to fetch workspaces:', extractApiError(e).message);
+    }
+  }
+
+  async function createWorkspace(payload: WorkspacePayload): Promise<Workspace> {
+    const workspace = await $fetch<Workspace>('/api/workspaces', { method: 'POST', body: payload });
+    await fetchWorkspaces();
+    return workspace;
+  }
+
+  async function updateWorkspace(id: number, payload: WorkspacePayload): Promise<Workspace> {
+    const workspace = await $fetch<Workspace>(`/api/workspaces/${id}`, { method: 'PUT', body: payload });
+    await fetchWorkspaces();
+    return workspace;
+  }
+
+  async function softDeleteWorkspace(id: number): Promise<void> {
+    await $fetch(`/api/workspaces/${id}`, { method: 'DELETE' });
+    if (activeWorkspaceId.value === id) setActiveWorkspace(null);
+    await fetchWorkspaces();
+  }
+
+  async function restoreWorkspace(id: number): Promise<void> {
+    await $fetch(`/api/workspaces/${id}/restore`, { method: 'POST' });
+    await fetchWorkspaces();
+  }
+
+  function setActiveWorkspace(id: number | null): void {
+    activeWorkspaceId.value = id;
+    saveActiveWorkspaceId(id);
   }
 
   async function fetchUsers(): Promise<void> {
@@ -148,12 +214,20 @@ export const useProjectsStore = defineStore('projects', () => {
   return {
     projects,
     users,
+    workspaces,
     loading,
     error,
     columns,
     columnOrder,
+    activeWorkspaceId,
     fetchProjects,
     fetchUsers,
+    fetchWorkspaces,
+    createWorkspace,
+    updateWorkspace,
+    softDeleteWorkspace,
+    restoreWorkspace,
+    setActiveWorkspace,
     createProject,
     updateProject,
     deleteProject,
@@ -166,3 +240,4 @@ export const useProjectsStore = defineStore('projects', () => {
 export { STATUSES, PRIORITIES } from '#shared/types/project';
 export type { Project, ProjectPayload, ProjectStatus, ProjectPriority, SortField, SortOrder } from '#shared/types/project';
 export type { User } from '#shared/types/user';
+export type { Workspace, WorkspacePayload } from '#shared/types/workspace';

@@ -14,6 +14,10 @@ const userItems = computed(() => [
   ...store.users.map((u) => ({ label: u.name, value: u.id })),
 ]);
 
+const workspaceItems = computed(() => [
+  ...store.workspaces.map((w) => ({ label: w.name, value: w.id })),
+]);
+
 const deleteTarget = ref<Project | null>(null);
 const deleteBusy = ref(false);
 const deleteError = ref<string | null>(null);
@@ -23,6 +27,11 @@ async function handleMove(project: Project, toStatus: ProjectStatus): Promise<vo
 }
 
 async function handleAdd(status: ProjectStatus, name: string): Promise<void> {
+  const workspaceId = store.activeWorkspaceId ?? store.workspaces[0]?.id;
+  if (!workspaceId) {
+    console.error('Cannot add project: no workspace available');
+    return;
+  }
   try {
     const today = new Date().toISOString().split('T')[0]!;
     await store.createProject({
@@ -32,8 +41,9 @@ async function handleAdd(status: ProjectStatus, name: string): Promise<void> {
       priority: 'Medium',
       startDate: today,
       dueDate: today,
+      workspaceId,
     });
-    await store.fetchProjects();
+    await store.fetchProjects({ workspaceId: store.activeWorkspaceId ?? undefined });
   } catch (e) {
     const err = extractApiError(e);
     console.error('Failed to create project:', err.message);
@@ -57,10 +67,11 @@ async function saveEdit(): Promise<void> {
       startDate: editingProject.value.startDate,
       dueDate: editingProject.value.dueDate,
       assignedTo: editingProject.value.assignedTo,
+      workspaceId: editingProject.value.workspaceId,
     });
     editModalOpen.value = false;
     editingProject.value = null;
-    await store.fetchProjects();
+    await store.fetchProjects({ workspaceId: store.activeWorkspaceId ?? undefined });
   } catch (e) {
     const err = extractApiError(e);
     console.error('Failed to update project:', err.message);
@@ -78,7 +89,7 @@ async function confirmDelete(): Promise<void> {
   try {
     await store.deleteProject(deleteTarget.value.id);
     deleteTarget.value = null;
-    await store.fetchProjects();
+    await store.fetchProjects({ workspaceId: store.activeWorkspaceId ?? undefined });
   } catch (e) {
     deleteError.value = extractApiError(e).message;
   } finally {
@@ -87,8 +98,13 @@ async function confirmDelete(): Promise<void> {
 }
 
 onMounted(() => {
-  store.fetchProjects();
+  store.fetchProjects({ workspaceId: store.activeWorkspaceId ?? undefined });
   store.fetchUsers();
+  if (store.workspaces.length === 0) store.fetchWorkspaces();
+});
+
+watch(() => store.activeWorkspaceId, () => {
+  store.fetchProjects({ workspaceId: store.activeWorkspaceId ?? undefined });
 });
 </script>
 
@@ -177,6 +193,14 @@ onMounted(() => {
             <USelect
               v-model="editingProject.assignedTo"
               :items="userItems"
+              value-key="value"
+            />
+          </div>
+          <div class="form-field">
+            <label class="form-label">Workspace</label>
+            <USelect
+              v-model="editingProject.workspaceId"
+              :items="workspaceItems"
               value-key="value"
             />
           </div>

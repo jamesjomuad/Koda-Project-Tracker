@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseProjectPayload, parseListQuery } from '../server/utils/validation';
+import { parseProjectPayload, parseListQuery, parseWorkspacePayload } from '../server/utils/validation';
 
 const validPayload = {
   clientName: 'Acme',
@@ -9,6 +9,7 @@ const validPayload = {
   priority: 'Medium',
   startDate: '2026-01-01',
   dueDate: '2026-02-01',
+  workspaceId: 1,
 };
 
 /** Asserts that calling fn() throws with specific field-level issue messages. */
@@ -73,6 +74,19 @@ describe('parseProjectPayload', () => {
     ]);
   });
 
+  it('rejects missing workspaceId', () => {
+    const { workspaceId, ...rest } = validPayload;
+    expectValidationIssues(() => parseProjectPayload(rest), [
+      { field: 'workspaceId', message: 'Workspace is required' },
+    ]);
+  });
+
+  it('rejects non-positive workspaceId', () => {
+    expectValidationIssues(() => parseProjectPayload({ ...validPayload, workspaceId: -3 }), [
+      { field: 'workspaceId', message: 'Workspace is required' },
+    ]);
+  });
+
   it('rejects invalid status values', () => {
     expectValidationIssues(() => parseProjectPayload({ ...validPayload, status: 'Done' }), [
       { field: 'status', message: 'Status must be one of: Planning, In Progress, On Hold, Completed' },
@@ -123,6 +137,15 @@ describe('parseListQuery', () => {
     expect(result).toMatchObject({ status: 'Completed', priority: 'High', search: 'acme' });
   });
 
+  it('parses a workspaceId filter', () => {
+    const result = parseListQuery({ workspaceId: '3' });
+    expect(result.workspaceId).toBe(3);
+  });
+
+  it('rejects an invalid workspaceId', () => {
+    expectValidationIssues(() => parseListQuery({ workspaceId: 'abc' }), [{ field: 'workspaceId' }]);
+  });
+
   it('rejects an invalid status', () => {
     expectValidationIssues(() => parseListQuery({ status: 'Bogus' }), [{ field: 'status' }]);
   });
@@ -133,5 +156,34 @@ describe('parseListQuery', () => {
 
   it('rejects an invalid order', () => {
     expectValidationIssues(() => parseListQuery({ order: 'sideways' }), [{ field: 'order' }]);
+  });
+});
+
+describe('parseWorkspacePayload', () => {
+  it('accepts a valid payload and defaults description', () => {
+    const result = parseWorkspacePayload({ name: 'Design Studio' });
+    expect(result).toMatchObject({ name: 'Design Studio', description: '' });
+  });
+
+  it('trims whitespace from the name', () => {
+    expect(parseWorkspacePayload({ name: '  Ops  ' }).name).toBe('Ops');
+  });
+
+  it('rejects missing name', () => {
+    expectValidationIssues(() => parseWorkspacePayload({}), [
+      { field: 'name', message: 'Workspace name is required' },
+    ]);
+  });
+
+  it('rejects an over-long name', () => {
+    expectValidationIssues(() => parseWorkspacePayload({ name: 'x'.repeat(121) }), [
+      { field: 'name', message: 'Workspace name must be 120 characters or fewer' },
+    ]);
+  });
+
+  it('rejects an over-long description', () => {
+    expectValidationIssues(() => parseWorkspacePayload({ name: 'A', description: 'x'.repeat(2001) }), [
+      { field: 'description', message: 'Description must be 2000 characters or fewer' },
+    ]);
   });
 });

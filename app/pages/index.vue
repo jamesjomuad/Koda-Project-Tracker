@@ -19,6 +19,11 @@ watch([search, statusFilter, priorityFilter, sortBy, sortOrder], () => {
   searchTimer = setTimeout(load, 250);
 }, { deep: true });
 
+watch(() => store.activeWorkspaceId, () => {
+  clearTimeout(searchTimer);
+  load();
+});
+
 async function load(): Promise<void> {
   await store.fetchProjects({
     search: search.value,
@@ -26,8 +31,13 @@ async function load(): Promise<void> {
     priority: priorityFilter.value,
     sortBy: sortBy.value,
     order: sortOrder.value,
+    workspaceId: store.activeWorkspaceId ?? undefined,
   });
 }
+
+const activeWorkspace = computed(() =>
+  store.workspaces.find((w) => w.id === store.activeWorkspaceId),
+);
 
 function toggleSort(field: SortField): void {
   if (sortBy.value === field) {
@@ -106,7 +116,10 @@ async function confirmDelete(): Promise<void> {
   }
 }
 
-onMounted(load);
+onMounted(() => {
+  if (store.workspaces.length === 0) store.fetchWorkspaces();
+  load();
+});
 </script>
 
 <template>
@@ -114,7 +127,9 @@ onMounted(load);
     <header class="page-head">
       <div>
         <h1>Projects</h1>
-        <p class="subtitle">Track client projects, progress, and priorities.</p>
+        <p class="subtitle">
+          {{ activeWorkspace ? `Projects in “${activeWorkspace.name}”.` : 'Track client projects, progress, and priorities.' }}
+        </p>
       </div>
     </header>
 

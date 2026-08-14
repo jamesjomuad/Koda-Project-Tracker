@@ -1,4 +1,11 @@
 import type { ProjectPayload } from '../types/project';
+import type { WorkspacePayload } from '../types/workspace';
+
+export const SEED_WORKSPACES: WorkspacePayload[] = [
+  { name: 'Design Studio', description: 'Client websites, apps, and creative work.' },
+  { name: 'Growth & Marketing', description: 'Campaigns, dashboards, and go-to-market projects.' },
+  { name: 'Operations & Platform', description: 'Internal systems, platforms, and tooling.' },
+];
 
 export const SEED_PROJECTS: ProjectPayload[] = [
   {
@@ -10,6 +17,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-06-01',
     dueDate: '2026-07-15',
     assignedTo: 1,
+    workspaceId: 1,
   },
   {
     clientName: 'GreenLeaf Cafe',
@@ -20,6 +28,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-06-10',
     dueDate: '2026-08-01',
     assignedTo: 2,
+    workspaceId: 3,
   },
   {
     clientName: 'Bright Realty',
@@ -30,6 +39,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-05-15',
     dueDate: '2026-07-30',
     assignedTo: 3,
+    workspaceId: 1,
   },
   {
     clientName: 'Nova Fitness',
@@ -40,6 +50,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-06-05',
     dueDate: '2026-08-20',
     assignedTo: 1,
+    workspaceId: 1,
   },
   {
     clientName: 'Blue Ocean Travel',
@@ -50,6 +61,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-04-01',
     dueDate: '2026-05-30',
     assignedTo: 4,
+    workspaceId: 2,
   },
   {
     clientName: 'TechVision Solutions',
@@ -60,6 +72,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-06-15',
     dueDate: '2026-08-15',
     assignedTo: 2,
+    workspaceId: 2,
   },
   {
     clientName: 'Urban Living',
@@ -70,6 +83,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-05-20',
     dueDate: '2026-08-10',
     assignedTo: 5,
+    workspaceId: 3,
   },
   {
     clientName: 'Elite Events',
@@ -80,6 +94,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-06-20',
     dueDate: '2026-09-01',
     assignedTo: null,
+    workspaceId: 2,
   },
   {
     clientName: 'HealthFirst Clinic',
@@ -90,6 +105,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-03-01',
     dueDate: '2026-05-01',
     assignedTo: 3,
+    workspaceId: 3,
   },
   {
     clientName: 'MarketPro',
@@ -100,6 +116,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-06-01',
     dueDate: '2026-07-31',
     assignedTo: 4,
+    workspaceId: 2,
   },
   {
     clientName: 'Sunrise Education',
@@ -110,6 +127,7 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-07-01',
     dueDate: '2026-09-30',
     assignedTo: 1,
+    workspaceId: 3,
   },
   {
     clientName: 'FreshFarm',
@@ -120,5 +138,6 @@ export const SEED_PROJECTS: ProjectPayload[] = [
     startDate: '2026-05-01',
     dueDate: '2026-08-01',
     assignedTo: null,
+    workspaceId: 3,
   },
 ];

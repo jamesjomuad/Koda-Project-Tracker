@@ -1,7 +1,8 @@
 import { getPrisma } from '../utils/db';
 import { countProjects, seedProjects } from '../utils/projects.repository';
 import { countUsers, seedUsers } from '../utils/users.repository';
-import { SEED_PROJECTS } from '#shared/data/seed-data';
+import { countWorkspaces, seedWorkspaces } from '../utils/workspaces.repository';
+import { SEED_PROJECTS, SEED_WORKSPACES } from '#shared/data/seed-data';
 
 export default defineNitroPlugin(async () => {
   const prisma = getPrisma();
@@ -10,6 +11,11 @@ export default defineNitroPlugin(async () => {
   if ((await countUsers()) === 0) {
     const inserted = await seedUsers();
     console.log(`[db] seeded ${inserted} users`);
+  }
+
+  if ((await countWorkspaces()) === 0) {
+    const inserted = await seedWorkspaces(SEED_WORKSPACES);
+    console.log(`[db] seeded ${inserted} workspaces`);
   }
 
   if ((await countProjects()) === 0) {

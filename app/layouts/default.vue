@@ -1,12 +1,24 @@
 <script setup lang="ts">
+import { useProjectsStore } from '../stores/projects';
+
 const { user, logout } = useAuth();
 const route = useRoute();
+const store = useProjectsStore();
 const isLogin = computed(() => route.path === '/login');
+
+const workspaceItems = computed(() => [
+  { label: 'All workspaces', value: null },
+  ...store.workspaces.map((w) => ({ label: w.name, value: w.id })),
+]);
 
 async function onLogout(): Promise<void> {
   await logout();
   await navigateTo('/login');
 }
+
+onMounted(() => {
+  if (store.workspaces.length === 0) store.fetchWorkspaces();
+});
 </script>
 
 <template>
@@ -20,6 +32,16 @@ async function onLogout(): Promise<void> {
         <nav v-if="!isLogin" class="nav">
           <NuxtLink to="/" class="nav-link">Projects</NuxtLink>
           <NuxtLink to="/kanban" class="nav-link">Board</NuxtLink>
+          <NuxtLink to="/workspaces" class="nav-link">Workspaces</NuxtLink>
+          <USelect
+            v-if="store.workspaces.length > 0"
+            :model-value="store.activeWorkspaceId"
+            :items="workspaceItems"
+            value-key="value"
+            class="workspace-switcher"
+            aria-label="Select workspace"
+            @update:model-value="(id: number | null) => store.setActiveWorkspace(id)"
+          />
           <UButton to="/projects/new" icon="i-lucide-plus" color="primary">New Project</UButton>
           <span v-if="user" class="nav-user" :title="`Signed in as ${user.username}`">
             {{ user.username }}
@@ -119,6 +141,18 @@ async function onLogout(): Promise<void> {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.workspace-switcher {
+  min-width: 170px;
+  max-width: 220px;
+}
+
+@media (max-width: 900px) {
+  .workspace-switcher {
+    min-width: 140px;
+    max-width: 160px;
+  }
 }
 
 .page-body {

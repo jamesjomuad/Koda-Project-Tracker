@@ -28,6 +28,7 @@ const form = reactive<ProjectPayload>({
   startDate: props.initial?.startDate ?? '',
   dueDate: props.initial?.dueDate ?? '',
   assignedTo: props.initial?.assignedTo ?? null,
+  workspaceId: props.initial?.workspaceId ?? store.activeWorkspaceId ?? store.workspaces[0]?.id ?? 0,
 });
 
 const fieldErrors = ref<Record<string, string>>({});
@@ -39,8 +40,13 @@ const userItems = computed(() => [
   ...store.users.map((u) => ({ label: u.name, value: u.id })),
 ]);
 
+const workspaceItems = computed(() => [
+  ...store.workspaces.map((w) => ({ label: w.name, value: w.id })),
+]);
+
 onMounted(() => {
   if (store.users.length === 0) store.fetchUsers();
+  if (store.workspaces.length === 0) store.fetchWorkspaces();
 });
 
 function clearErrors(): void {
@@ -76,6 +82,18 @@ async function onSubmit(): Promise<void> {
       icon="i-lucide-circle-alert"
       :title="formError"
     />
+
+    <UFormField label="Workspace" required :error="fieldErrors.workspaceId">
+      <USelect
+        v-model="form.workspaceId"
+        name="workspaceId"
+        :items="workspaceItems"
+        value-key="value"
+        :disabled="workspaceItems.length === 0"
+        placeholder="Select a workspace"
+        class="w-full"
+      />
+    </UFormField>
 
     <div class="form-grid">
       <UFormField label="Client Name" required :error="fieldErrors.clientName">

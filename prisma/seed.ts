@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SEED_PROJECTS } from '../shared/data/seed-data';
+import { SEED_PROJECTS, SEED_WORKSPACES } from '../shared/data/seed-data';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.DATABASE_URL ?? `file:${path.resolve(__dirname, '..', 'data', 'projects.db')}`;
@@ -27,6 +27,16 @@ async function main() {
     console.log(`[seed] created ${SEED_USERS.length} users`);
   }
 
+  const workspaceCount = await prisma.workspace.count();
+  if (workspaceCount === 0) {
+    for (const w of SEED_WORKSPACES) {
+      await prisma.workspace.create({
+        data: { name: w.name, description: w.description ?? '' },
+      });
+    }
+    console.log(`[seed] created ${SEED_WORKSPACES.length} workspaces`);
+  }
+
   const projectCount = await prisma.project.count();
   if (projectCount === 0) {
     for (const p of SEED_PROJECTS) {
@@ -40,6 +50,7 @@ async function main() {
           startDate: p.startDate,
           dueDate: p.dueDate,
           assignedTo: p.assignedTo ?? null,
+          workspaceId: p.workspaceId,
         },
       });
     }

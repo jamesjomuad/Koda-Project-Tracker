@@ -19,6 +19,19 @@ model User {
   @@map("users")
 }
 
+model Workspace {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String     @default("")
+  deletedAt   DateTime?  @map("deletedAt")
+  createdAt   DateTime   @default(now()) @map("createdAt")
+  updatedAt   DateTime   @updatedAt @map("updatedAt")
+
+  projects Project[]
+
+  @@map("workspaces")
+}
+
 model Project {
   id          Int      @id @default(autoincrement())
   clientName  String
@@ -29,10 +42,12 @@ model Project {
   startDate   String
   dueDate     String
   assignedTo  Int?
+  workspaceId Int
   createdAt   DateTime @default(now()) @map("createdAt")
   updatedAt   DateTime @updatedAt @map("updatedAt")
 
-  user User? @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+  user      User?      @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@map("projects")
 }
