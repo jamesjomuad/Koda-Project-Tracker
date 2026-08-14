@@ -11,18 +11,6 @@ const workspaceItems = computed(() => [
   ...store.workspaces.map((w) => ({ label: w.name, value: w.id })),
 ]);
 
-const activeWorkspace = computed(
-  () => store.workspaces.find((w) => w.id === store.activeWorkspaceId) ?? null,
-);
-
-const projectsHref = computed(
-  () => (activeWorkspace.value ? `/${activeWorkspace.value.slug}/projects` : '/'),
-);
-
-const boardHref = computed(
-  () => (activeWorkspace.value ? `/${activeWorkspace.value.slug}/kanban` : '/'),
-);
-
 async function onLogout(): Promise<void> {
   await logout();
   await navigateTo('/login');
@@ -48,8 +36,6 @@ onMounted(() => {
           <span class="brand-name">Koda Project Tracker</span>
         </NuxtLink>
         <nav v-if="!isLogin" class="nav">
-          <NuxtLink :to="projectsHref" class="nav-link">Projects</NuxtLink>
-          <NuxtLink :to="boardHref" class="nav-link">Board</NuxtLink>
           <USelectMenu
             v-if="store.workspaces.length > 0"
             :model-value="store.activeWorkspaceId"
@@ -62,7 +48,6 @@ onMounted(() => {
             class="workspace-switcher"
             @update:model-value="(id: number | null) => onWorkspaceSelect(id)"
           />
-          <UButton to="/projects/new" icon="i-lucide-plus" color="primary">New Project</UButton>
           <span v-if="user" class="nav-user" :title="`Signed in as ${user.username}`">
             {{ user.username }}
           </span>

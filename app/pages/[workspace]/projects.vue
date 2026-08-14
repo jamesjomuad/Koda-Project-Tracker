@@ -164,7 +164,7 @@ async function confirmDelete(): Promise<void> {
           <h1>{{ workspace.name }}</h1>
           <p class="subtitle">Projects in “{{ workspace.name }}”.</p>
         </div>
-        <UButton to="/projects/new" icon="i-lucide-plus" color="primary">New Project</UButton>
+        <WorkspaceNav :slug="workspace.slug" />
       </header>
 
       <div class="stats" aria-label="Project summary">

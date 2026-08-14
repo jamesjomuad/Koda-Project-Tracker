@@ -157,6 +157,7 @@ async function confirmDelete(): Promise<void> {
           <h1>{{ workspace.name }}</h1>
           <p class="subtitle">Board · drag cards between statuses.</p>
         </div>
+        <WorkspaceNav :slug="workspace.slug" />
       </header>
 
       <UAlert
