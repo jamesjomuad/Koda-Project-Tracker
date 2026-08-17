@@ -20,8 +20,8 @@ useSeoMeta({
 });
 
 const search = ref('');
-const statusFilter = ref<Project['status'] | undefined>(undefined);
-const priorityFilter = ref<Project['priority'] | undefined>(undefined);
+const statusFilter = ref<Project['status'] | null>(null);
+const priorityFilter = ref<Project['priority'] | null>(null);
 const sortBy = ref<SortField>('dueDate');
 const sortOrder = ref<SortOrder>('asc');
 
@@ -36,8 +36,8 @@ async function load(): Promise<void> {
   if (!workspace.value) return;
   await store.fetchProjects({
     search: search.value,
-    status: statusFilter.value,
-    priority: priorityFilter.value,
+    status: statusFilter.value ?? undefined,
+    priority: priorityFilter.value ?? undefined,
     sortBy: sortBy.value,
     order: sortOrder.value,
     workspaceId: workspace.value.id,
@@ -117,8 +117,8 @@ const filtersActive = computed(
 
 function clearFilters(): void {
   search.value = '';
-  statusFilter.value = undefined;
-  priorityFilter.value = undefined;
+  statusFilter.value = null;
+  priorityFilter.value = null;
 }
 
 const deleteTarget = ref<Project | null>(null);
@@ -230,16 +230,20 @@ async function confirmDelete(): Promise<void> {
         />
         <USelect
           v-model="statusFilter"
-          :items="STATUSES.map((s) => ({ label: s, value: s }))"
+          :items="[
+            { label: 'All statuses', value: null },
+            ...STATUSES.map((s) => ({ label: s, value: s })),
+          ]"
           value-key="value"
-          placeholder="All statuses"
           aria-label="Filter by status"
         />
         <USelect
           v-model="priorityFilter"
-          :items="PRIORITIES.map((p) => ({ label: p, value: p }))"
+          :items="[
+            { label: 'All priorities', value: null },
+            ...PRIORITIES.map((p) => ({ label: p, value: p })),
+          ]"
           value-key="value"
-          placeholder="All priorities"
           aria-label="Filter by priority"
         />
         <USelect
