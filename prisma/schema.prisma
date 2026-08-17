@@ -49,6 +49,19 @@ model Project {
 
   user      User?      @relation(fields: [assignedTo], references: [id], onDelete: SetNull)
   workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  comments  Comment[]
 
   @@map("projects")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  body      String
+  projectId Int
+  createdAt DateTime @default(now()) @map("createdAt")
+  updatedAt DateTime @updatedAt @map("updatedAt")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
 }

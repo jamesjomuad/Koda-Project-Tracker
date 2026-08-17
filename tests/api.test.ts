@@ -44,6 +44,13 @@ await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS projects (
   createdAt TEXT NOT NULL DEFAULT (datetime('now')),
   updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
 )`);
+await prisma.$executeRawUnsafe(`CREATE TABLE IF NOT EXISTS comments (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  body TEXT NOT NULL,
+  projectId INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  createdAt TEXT NOT NULL DEFAULT (datetime('now')),
+  updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
+)`);
 await prisma.$disconnect();
 
 await setup({ server: true, port: 3199, build: true });
@@ -259,6 +266,110 @@ describe('DELETE /api/projects/:id', () => {
 
   it('returns 404 when deleting a missing project', async () => {
     const body = await fetchExpectStatus('/99999', 404, { method: 'DELETE' });
+    expect(body.error.code).toBe('NOT_FOUND');
+  });
+});
+
+describe('Comments /api/projects/:id/comments', () => {
+  let projectId: number;
+
+  beforeEach(async () => {
+    const created = await fetch(base, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validPayload),
+    }).then(r => r.json());
+    projectId = created.id;
+  });
+
+  it('returns an empty list for a project with no comments', async () => {
+    const comments = await fetch(`${base}/${projectId}/comments`).then(r => r.json());
+    expect(comments).toEqual([]);
+  });
+
+  it('creates a comment and returns it with 201', async () => {
+    const created = await fetchExpectStatus(`/${projectId}/comments`, 201, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: 'Looking good so far' }),
+    });
+    expect(created).toMatchObject({ body: 'Looking good so far', projectId });
+    expect(created.id).toBeGreaterThan(0);
+    expect(created.createdAt).toBeTruthy();
+  });
+
+  it('lists comments oldest first', async () => {
+    await fetch(`${base}/${projectId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: 'First' }),
+    });
+    await fetch(`${base}/${projectId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: 'Second' }),
+    });
+
+    const comments = await fetch(`${base}/${projectId}/comments`).then(r => r.json());
+    expect(comments.map((c: any) => c.body)).toEqual(['First', 'Second']);
+  });
+
+  it('rejects an empty comment body', async () => {
+    const body = await fetchExpectStatus(`/${projectId}/comments`, 400, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: '   ' }),
+    });
+    expect(body.error.code).toBe('VALIDATION_ERROR');
+    expect(body.error.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'body' })]),
+    );
+  });
+
+  it('returns 404 when commenting on a missing project', async () => {
+    const body = await fetchExpectStatus('/99999/comments', 404, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: 'Nope' }),
+    });
+    expect(body.error).toMatchObject({ code: 'NOT_FOUND', message: 'Project not found' });
+  });
+
+  it('returns 404 when listing comments for a missing project', async () => {
+    const body = await fetchExpectStatus('/99999/comments', 404);
+    expect(body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('deletes a comment', async () => {
+    const created = await fetch(`${base}/${projectId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: 'To be removed' }),
+    }).then(r => r.json());
+
+    const res = await fetch(`${base}/${projectId}/comments/${created.id}`, { method: 'DELETE' });
+    expect(res.status).toBe(204);
+
+    const comments = await fetch(`${base}/${projectId}/comments`).then(r => r.json());
+    expect(comments).toEqual([]);
+  });
+
+  it('returns 404 when deleting a missing comment', async () => {
+    const body = await fetchExpectStatus(`/${projectId}/comments/99999`, 404, { method: 'DELETE' });
+    expect(body.error.code).toBe('NOT_FOUND');
+  });
+
+  it('cascades comment deletion when the project is deleted', async () => {
+    const created = await fetch(`${base}/${projectId}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body: 'Goes away with project' }),
+    }).then(r => r.json());
+
+    const del = await fetch(`${base}/${projectId}`, { method: 'DELETE' });
+    expect(del.status).toBe(204);
+
+    const body = await fetchExpectStatus(`/${projectId}/comments/${created.id}`, 404, { method: 'DELETE' });
     expect(body.error.code).toBe('NOT_FOUND');
   });
 });

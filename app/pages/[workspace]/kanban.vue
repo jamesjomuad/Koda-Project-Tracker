@@ -21,6 +21,24 @@ useSeoMeta({
 
 const editModalOpen = ref(false);
 const editingProject = ref<Project | null>(null);
+const pristineProject = ref<Project | null>(null);
+
+const hasChanges = computed(() => {
+  if (!editingProject.value || !pristineProject.value) return false;
+  const current = editingProject.value;
+  const original = pristineProject.value;
+  return (
+    current.clientName !== original.clientName ||
+    current.projectName !== original.projectName ||
+    current.description !== original.description ||
+    current.status !== original.status ||
+    current.priority !== original.priority ||
+    current.startDate !== original.startDate ||
+    current.dueDate !== original.dueDate ||
+    current.assignedTo !== original.assignedTo ||
+    current.workspaceId !== original.workspaceId
+  );
+});
 
 const userItems = computed(() => [
   { label: 'Unassigned', value: null },
@@ -88,13 +106,14 @@ async function handleAdd(status: ProjectStatus, name: string): Promise<void> {
 
 function handleEdit(project: Project): void {
   editingProject.value = { ...project };
+  pristineProject.value = { ...project };
   editModalOpen.value = true;
 }
 
 async function saveEdit(): Promise<void> {
   if (!editingProject.value) return;
   try {
-    await store.updateProject(editingProject.value.id, {
+    const updated = await store.updateProject(editingProject.value.id, {
       clientName: editingProject.value.clientName,
       projectName: editingProject.value.projectName,
       description: editingProject.value.description,
@@ -105,8 +124,11 @@ async function saveEdit(): Promise<void> {
       assignedTo: editingProject.value.assignedTo,
       workspaceId: editingProject.value.workspaceId,
     });
+    pristineProject.value = { ...updated };
+    editingProject.value = { ...updated };
     editModalOpen.value = false;
     editingProject.value = null;
+    pristineProject.value = null;
     await store.fetchProjects({ workspaceId: workspace.value?.id ?? undefined });
   } catch (e) {
     const err = extractApiError(e);
@@ -184,6 +206,7 @@ async function confirmDelete(): Promise<void> {
         v-model:open="editModalOpen"
         title="Edit Project"
         :dismissible="true"
+        :ui="{ content: 'sm:max-w-3xl' }"
       >
         <template v-if="editingProject" #body>
           <div class="edit-form">
@@ -253,10 +276,12 @@ async function confirmDelete(): Promise<void> {
               />
             </div>
           </div>
+          <div class="modal-divider" role="separator" aria-hidden="true"></div>
+          <CommentSection :project-id="editingProject.id" />
         </template>
         <template #footer>
           <UButton color="neutral" variant="outline" @click="editModalOpen = false">Cancel</UButton>
-          <UButton color="primary" @click="saveEdit">Save Changes</UButton>
+          <UButton v-if="hasChanges" color="primary" @click="saveEdit">Save Changes</UButton>
         </template>
       </UModal>
 
@@ -312,5 +337,15 @@ async function confirmDelete(): Promise<void> {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1rem;
+}
+
+.modal-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin-top: 1.5rem;
+}
+
+.modal-divider + :deep(.comment-section) {
+  margin-top: 1.5rem;
 }
 </style>

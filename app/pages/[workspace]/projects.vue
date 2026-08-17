@@ -323,7 +323,7 @@ async function confirmDelete(): Promise<void> {
             <div class="card-top">
               <div>
                 <h3 class="project-name">
-                  <NuxtLink :to="`/projects/${project.id}/edit`">{{ project.projectName }}</NuxtLink>
+                  <NuxtLink :to="`/projects/${project.id}`">{{ project.projectName }}</NuxtLink>
                 </h3>
                 <p class="client-name">{{ project.clientName }}</p>
               </div>

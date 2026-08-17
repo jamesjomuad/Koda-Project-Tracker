@@ -25,12 +25,15 @@ app/                          # Nuxt 4 app directory (frontend)
     ProjectPriorityBadge.vue  # Color-coded priority badge
     ProjectStatusBadge.vue    # Color-coded status badge
     WorkspaceForm.vue         # Create/edit workspace form (name, slug, description)
+    CommentSection.vue        # Project comment thread (list, add, delete)
+    WorkspaceNav.vue          # Shared workspace nav (projects/board links)
   composables/                # useAuth.ts, usePersistedRef.ts
   layouts/default.vue         # App shell: header (workspace switcher), nav, footer
   middleware/auth.global.ts   # Route guard — redirects to /login
   pages/
     index.vue                 # Workspace landing — cards link to /{workspace}/projects
     login.vue                 # Login form
+    projects/[id].vue         # Project detail — info + comment thread
     projects/new.vue          # Create project form
     projects/[id]/edit.vue    # Edit project form
     workspaces/index.vue      # Workspace management (CRUD, restore, /?new=1 auto-open)
@@ -47,7 +50,7 @@ prisma/
   seed.ts                     # Standalone seed script (npx tsx prisma/seed.ts)
 server/                       # Nitro backend
   api/auth/                   # login.post, logout.post, session.get
-  api/projects/               # Full CRUD: index.get/post, [id].get/put/delete
+  api/projects/               # Full CRUD: index.get/post, [id].get/put/delete + [id]/comments (list/create/delete)
   api/users/                  # Full CRUD: index.get/post, [id].get/put/delete
   plugins/db.ts               # Auto-seeds users + projects if DB empty
   utils/
@@ -57,10 +60,12 @@ server/                       # Nitro backend
     errors.ts                 # Typed error factories (badRequest, notFound, etc.)
     params.ts                 # parseIdParam, coerceQuery helpers
     projects.repository.ts    # Prisma queries — async list, get, create, update, delete
+    comments.repository.ts    # Prisma queries — async list, create, delete comments
     users.repository.ts       # Prisma queries — async list, get, create, update, delete
     validation.ts             # Zod schemas for payload + list query
 shared/                       # Shared between client & server (#shared alias)
   types/project.ts            # Project, ProjectPayload, enums, sort types
+  types/comment.ts            # Comment, CommentPayload
   types/user.ts               # User, UserPayload, UserRole
   data/seed-data.ts           # 12 sample projects for auto-seeding
 tests/
@@ -87,7 +92,7 @@ tests/
 
 - **Prisma 7.9.1** with `@prisma/adapter-better-sqlite3` driver adapter
 - **SQLite** database at `data/projects.db`
-- **Schema:** `prisma/schema.prisma` with User, Workspace (soft-delete via `deletedAt`), and Project models (relations: Project.workspaceId → Workspace.id, Project.assignedTo → User.id)
+- **Schema:** `prisma/schema.prisma` with User, Workspace (soft-delete via `deletedAt`), Project, and Comment models (relations: Project.workspaceId → Workspace.id, Project.assignedTo → User.id, Comment.projectId → Project.id with cascade delete)
 - **Client singleton:** `server/utils/db.ts` exports `getPrisma()` using `PrismaBetterSqlite3` adapter
 - **Repository pattern:** `server/utils/projects.repository.ts` and `server/utils/users.repository.ts` wrap all Prisma queries
 - **Auto-seeding:** Nitro plugin seeds 5 users + 12 projects on startup if DB is empty

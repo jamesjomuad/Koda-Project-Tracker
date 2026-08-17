@@ -5,6 +5,7 @@ import { SORTABLE_FIELDS } from '#shared/types/project';
 import { badRequest } from './errors';
 import type { ValidationIssue } from '#shared/types/project';
 import type { WorkspacePayload } from '#shared/types/workspace';
+import type { CommentPayload } from '#shared/types/comment';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -122,6 +123,29 @@ const workspacePayloadSchema = z.object({
 });
 
 export type ValidatedWorkspacePayload = z.infer<typeof workspacePayloadSchema>;
+
+const commentPayloadSchema = z.object({
+  body: z
+    .string({ error: 'Comment is required' })
+    .trim()
+    .min(1, 'Comment is required')
+    .max(2000, 'Comment must be 2000 characters or fewer'),
+});
+
+export type ValidatedCommentPayload = z.infer<typeof commentPayloadSchema>;
+
+/** Parses a comment body. Non-matching -> 400 + field issues. */
+export function parseCommentPayload(body: unknown): CommentPayload {
+  const result = commentPayloadSchema.safeParse(body);
+  if (!result.success) {
+    const issues: ValidationIssue[] = result.error.issues.map((issue) => ({
+      field: issue.path.join('.') || 'body',
+      message: issue.message,
+    }));
+    throw badRequest('Invalid comment data', issues);
+  }
+  return result.data as CommentPayload;
+}
 
 /** Parses a payload (body) for workspace create/update. Non-matching -> 400 + field issues. */
 export function parseWorkspacePayload(body: unknown): WorkspacePayload {

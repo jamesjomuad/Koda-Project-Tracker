@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseProjectPayload, parseListQuery, parseWorkspacePayload } from '../server/utils/validation';
+import { parseProjectPayload, parseListQuery, parseWorkspacePayload, parseCommentPayload } from '../server/utils/validation';
 
 const validPayload = {
   clientName: 'Acme',
@@ -156,6 +156,29 @@ describe('parseListQuery', () => {
 
   it('rejects an invalid order', () => {
     expectValidationIssues(() => parseListQuery({ order: 'sideways' }), [{ field: 'order' }]);
+  });
+});
+
+describe('parseCommentPayload', () => {
+  it('accepts a valid comment and trims the body', () => {
+    const result = parseCommentPayload({ body: '  Great work  ' });
+    expect(result.body).toBe('Great work');
+  });
+
+  it('rejects a missing body', () => {
+    expectValidationIssues(() => parseCommentPayload({}), [{ field: 'body', message: 'Comment is required' }]);
+  });
+
+  it('rejects a blank body', () => {
+    expectValidationIssues(() => parseCommentPayload({ body: '   ' }), [
+      { field: 'body', message: 'Comment is required' },
+    ]);
+  });
+
+  it('rejects an over-long body', () => {
+    expectValidationIssues(() => parseCommentPayload({ body: 'x'.repeat(2001) }), [
+      { field: 'body', message: 'Comment must be 2000 characters or fewer' },
+    ]);
   });
 });
 
